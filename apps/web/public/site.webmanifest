@@ -1,0 +1,16 @@
+{
+  "name": "BidReady AI",
+  "short_name": "BidReady",
+  "description": "Tender Intelligence Platform",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F8FAFC",
+  "theme_color": "#0B1D3A",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

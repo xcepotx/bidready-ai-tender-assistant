@@ -51,3 +51,7 @@ apps/api/app/services.bak.*
 Thumbs.db
 .vscode/
 .idea/
+
+# Local/manual backup folder
+backups/
+False

@@ -1,0 +1,117 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: tender_postgres
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - /data/tender-ai/postgres:/var/lib/postgresql/data
+    networks:
+      - tender_net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: tender_redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - /data/tender-ai/redis:/data
+    networks:
+      - tender_net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  minio:
+    image: minio/minio:latest
+    container_name: tender_minio
+    restart: unless-stopped
+    env_file:
+      - .env
+    command: server /data --console-address ":9001"
+    volumes:
+      - /data/tender-ai/minio:/data
+    networks:
+      - tender_net
+    ports:
+      - "127.0.0.1:9000:9000"
+      - "127.0.0.1:9001:9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 20s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: ./apps/api
+    container_name: tender_api
+    restart: unless-stopped
+    env_file:
+      - .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_started
+    volumes:
+      - /data/tender-ai/uploads:/app/uploads
+      - /data/tender-ai/exports:/app/exports
+      - /data/tender-ai/logs:/app/logs
+    networks:
+      - tender_net
+    ports:
+      - "127.0.0.1:8000:8000"
+
+  worker:
+    build:
+      context: ./apps/api
+    container_name: tender_worker
+    restart: unless-stopped
+    env_file:
+      - .env
+    command: celery -A app.worker.celery_app worker --loglevel=INFO --concurrency=1
+    depends_on:
+      api:
+        condition: service_started
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    volumes:
+      - /data/tender-ai/uploads:/app/uploads
+      - /data/tender-ai/exports:/app/exports
+      - /data/tender-ai/logs:/app/logs
+    networks:
+      - tender_net
+
+  web:
+    build:
+      context: ./apps/web
+    container_name: tender_web
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_started
+    networks:
+      - tender_net
+    ports:
+      - "127.0.0.1:3000:80"
+
+networks:
+  tender_net:
+    name: tender_net
