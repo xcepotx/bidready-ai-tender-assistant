@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
-import { AlertTriangle, CheckCircle2, ClipboardCheck, FileQuestion, FileText, History, LayoutDashboard, MessageSquare, Plus, RefreshCw, ShieldCheck, Upload } from "lucide-react";
+import { AlertTriangle, CheckCircle2, ClipboardCheck, FileQuestion, FileText, History, LayoutDashboard, MessageSquare, Plus, RefreshCw, ShieldCheck } from "lucide-react";
 import "./style.css";
 import ProjectViewTabs from "./components/ProjectViewTabs.jsx";
 import RequirementsView from "./views/RequirementsView.jsx";

@@ -1,4 +1,5 @@
 import ResponseList from "./ResponseList.jsx";
+import { L } from "../utils/i18n.js";
 export default function ResponseItemDetail({ item, busy, updateResponseItem }) {
   return (
     <div className="detailContent responseDetail">
@@ -20,7 +21,7 @@ export default function ResponseItemDetail({ item, busy, updateResponseItem }) {
 
       {item.evidence_quote && (
         <div className="evidenceBox">
-          <strong>Requirement Evidence</strong>
+          <strong>{L("Requirement Evidence", "Evidence Requirement")}</strong>
           <p>{item.evidence_quote}</p>
         </div>
       )}

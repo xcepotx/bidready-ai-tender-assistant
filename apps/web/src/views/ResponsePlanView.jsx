@@ -41,8 +41,8 @@ export default function ResponsePlanView({
     <div className="workspaceView">
       <div className="viewHeader">
         <div>
-          <h3>Response Plan</h3>
-          <p className="muted">Convert reviewed requirements into compliance status, response strategy, draft response, and evidence checklist.</p>
+          <h3>{L("Response Plan", "Rencana Respons")}</h3>
+          <p className="muted">{L("Convert reviewed requirements into compliance status, response strategy, draft response, and evidence checklist.", "Konversi requirement yang sudah direview menjadi status kepatuhan, strategi respons, draft respons, dan checklist evidence.")}</p>
         </div>
         <div className="viewHeaderActions">
           <span className="filterResultCount">
@@ -63,7 +63,7 @@ export default function ResponsePlanView({
         />
 
         <select className="filterSelect" value={complianceFilter} onChange={(e) => setComplianceFilter(e.target.value)}>
-          <option value="all">All compliance</option>
+          <option value="all">{L("All compliance", "Semua kepatuhan")}</option>
           <option value="likely_compliant">likely_compliant</option>
           <option value="partially_compliant">partially_compliant</option>
           <option value="non_compliant">non_compliant</option>

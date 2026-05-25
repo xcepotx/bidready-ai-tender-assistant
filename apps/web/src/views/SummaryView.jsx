@@ -2,6 +2,8 @@ import DecisionGateCard from "../components/DecisionGateCard.jsx";
 import RfpMetadataCard from "../components/RfpMetadataCard.jsx";
 import BidBriefCard from "../components/BidBriefCard.jsx";
 import ReadinessSummaryCard from "../components/ReadinessSummaryCard.jsx";
+import ExecutiveDashboardCard from "../components/ExecutiveDashboardCard.jsx";
+import { Upload } from "lucide-react";
 export default function SummaryView({
   selectedProject,
   readinessSummary,

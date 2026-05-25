@@ -1,5 +1,9 @@
+export function getUiLanguage() {
+  return window.localStorage.getItem("bidreadyUiLanguage") || "en";
+}
+
 export function L(en, id) {
-  return en || id || "";
+  return getUiLanguage() === "id" ? (id || en || "") : (en || id || "");
 }
 
 export function translateRequirementTextForUi(text, uiLanguage = "en") {
