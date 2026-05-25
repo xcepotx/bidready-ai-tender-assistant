@@ -674,3 +674,71 @@ class DecisionGateApprovalHistoryResponse(BaseModel):
     summary: DecisionGateHistorySummaryResponse
     events: list[DecisionGateHistoryEventResponse]
 
+class AddendumImpactItemResponse(BaseModel):
+    id: int
+    project_id: int
+    document_id: int | None
+    source_document_name: str | None
+    title: str
+    summary: str | None
+    impact_type: str
+    impacted_artifact: str
+    severity: str
+    status: str
+    source_excerpt: str | None
+    recommended_action: str | None
+    owner: str | None
+    due_date: str | None
+    related_requirement_ids: list
+    related_response_item_ids: list
+    related_clarification_ids: list
+    related_compliance_item_ids: list
+    related_risk_item_ids: list
+    related_approval_step_ids: list
+    confidence: float | None
+    notes: str | None
+    generation_mode: str
+    created_at: datetime
+    updated_at: datetime | None
+
+    class Config:
+        from_attributes = True
+
+
+class AddendumImpactItemUpdate(BaseModel):
+    title: str | None = None
+    summary: str | None = None
+    impact_type: str | None = None
+    impacted_artifact: str | None = None
+    severity: str | None = None
+    status: str | None = None
+    recommended_action: str | None = None
+    owner: str | None = None
+    due_date: str | None = None
+    notes: str | None = None
+
+
+class AddendumImpactGenerateRequest(BaseModel):
+    document_id: int | None = None
+    notes: str | None = None
+
+
+class AddendumImpactSummaryResponse(BaseModel):
+    total_items: int
+    open_items: int
+    critical_items: int
+    high_items: int
+    severity_counts: dict
+    artifact_counts: dict
+    status_counts: dict
+    recommendation: str
+
+
+class AddendumImpactAnalysisResponse(BaseModel):
+    summary: AddendumImpactSummaryResponse
+    items: list[AddendumImpactItemResponse]
+
+
+class AddendumImpactGenerateResponse(AddendumImpactAnalysisResponse):
+    generated_count: int
+

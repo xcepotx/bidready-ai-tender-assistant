@@ -151,6 +151,10 @@ api_post "/api/v1/projects/${PROJECT_ID}/generate-approval-workflow" > "$TMP_DIR
 assert_jq "$TMP_DIR/generate_approval_workflow.json" '.steps | length > 0' "Approval Workflow generated"
 assert_jq "$TMP_DIR/generate_approval_workflow.json" '.summary.total_steps > 0' "Approval Workflow summary available"
 
+api_post "/api/v1/projects/${PROJECT_ID}/generate-addendum-impact-analysis" > "$TMP_DIR/generate_addendum_impact.json"
+assert_jq "$TMP_DIR/generate_addendum_impact.json" '(.generated_count // (.items | length) // 0) > 0' "Addendum Impact Analysis generated"
+assert_jq "$TMP_DIR/generate_addendum_impact.json" '.summary.total_items > 0' "Addendum Impact Analysis summary available"
+
 log "Validate Clarifications"
 api_get "/api/v1/projects/${PROJECT_ID}/clarifications" > "$TMP_DIR/clarifications.json"
 assert_jq "$TMP_DIR/clarifications.json" 'length > 0' "Clarifications exist"
@@ -283,6 +287,21 @@ api_patch_json "/api/v1/approval-steps/${APPROVAL_STEP_ID}" \
   '{"status":"approved","decision_note":"Smoke test approved","decided_by":"smoke_test"}' > "$TMP_DIR/approval_step_update.json"
 assert_jq "$TMP_DIR/approval_step_update.json" '.status == "approved"' "Approval step approve works"
 
+log "Validate Addendum Impact Analysis"
+api_get "/api/v1/projects/${PROJECT_ID}/addendum-impacts" > "$TMP_DIR/addendum_impacts.json"
+assert_jq "$TMP_DIR/addendum_impacts.json" '.items | length > 0' "Addendum Impact Analysis exists"
+assert_jq "$TMP_DIR/addendum_impacts.json" '.summary.total_items > 0' "Addendum Impact Analysis summary exists"
+assert_jq "$TMP_DIR/addendum_impacts.json" 'any(.items[]; (.recommended_action // .notes // "") | test("Review|review|Validasi|Konfirmasi|Generated|Dihasilkan|Update"))' "Addendum Impact Analysis guidance available/localized"
+
+ADDENDUM_IMPACT_ID="$(jq -r '.items[0].id // empty' "$TMP_DIR/addendum_impacts.json")"
+if [ -z "$ADDENDUM_IMPACT_ID" ]; then
+  fail "Addendum impact item ID available"
+fi
+
+api_patch_json "/api/v1/addendum-impact-items/${ADDENDUM_IMPACT_ID}" \
+  '{"status":"reviewed","notes":"Smoke test addendum impact update"}' > "$TMP_DIR/addendum_impact_update.json"
+assert_jq "$TMP_DIR/addendum_impact_update.json" '.status == "reviewed"' "Addendum impact item update works"
+
 log "Validate Decision Gate Approval History"
 api_get "/api/v1/projects/${PROJECT_ID}/decision-gate-history" > "$TMP_DIR/decision_gate_history.json"
 assert_jq "$TMP_DIR/decision_gate_history.json" '.events | length > 0' "Decision Gate Approval History exists"
@@ -294,7 +313,7 @@ log "Validate Audit Log"
 api_get "/api/v1/projects/${PROJECT_ID}/audit-logs" > "$TMP_DIR/audit_logs.json"
 assert_jq "$TMP_DIR/audit_logs.json" 'length > 0' "Audit logs exist"
 assert_jq "$TMP_DIR/audit_logs.json" \
-  'any(.[]; .action == "generate_response_plan") and any(.[]; .action == "generate_proposal_outline") and any(.[]; .action == "generate_decision_gate") and any(.[]; .action == "generate_compliance_scorecard") and any(.[]; .action == "generate_risk_register") and any(.[]; .action == "generate_approval_workflow")' \
+  'any(.[]; .action == "generate_response_plan") and any(.[]; .action == "generate_proposal_outline") and any(.[]; .action == "generate_decision_gate") and any(.[]; .action == "generate_compliance_scorecard") and any(.[]; .action == "generate_risk_register") and any(.[]; .action == "generate_approval_workflow") and any(.[]; .action == "generate_addendum_impact_analysis")' \
   "Audit logs contain generated artifact actions"
 
 log "Export Excel and DOCX"

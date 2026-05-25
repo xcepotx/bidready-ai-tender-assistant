@@ -4702,3 +4702,101 @@ button:hover {
     grid-template-columns: 1fr;
   }
 }
+
+
+/* ===== Addendum / Document Impact Analysis ===== */
+
+.addendumImpactView .addendumHeader {
+  background:
+    radial-gradient(circle at top right, rgba(245, 158, 11, 0.13), transparent 34%),
+    #ffffff;
+}
+
+.addendumHero {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.addendumHeroCard {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 20px;
+  padding: 16px;
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.06);
+}
+
+.addendumHeroCard.warning {
+  background: #fffbeb;
+  border-color: #fde68a;
+}
+
+.addendumHeroCard span {
+  display: block;
+  font-size: 11px;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  margin-bottom: 6px;
+}
+
+.addendumHeroCard strong {
+  display: block;
+  font-size: 34px;
+  color: #0f172a;
+  margin-bottom: 6px;
+}
+
+.addendumHeroCard p {
+  color: #475569;
+  margin: 0;
+}
+
+.addendumImpactList {
+  display: grid;
+  gap: 14px;
+}
+
+.addendumImpactCard {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-left: 6px solid #94a3b8;
+  border-radius: 20px;
+  padding: 16px;
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.06);
+}
+
+.addendumImpactCard.critical {
+  border-left-color: #7f1d1d;
+}
+
+.addendumImpactCard.high {
+  border-left-color: #ef4444;
+}
+
+.addendumImpactCard.medium {
+  border-left-color: #f59e0b;
+}
+
+.addendumImpactCard.low {
+  border-left-color: #22c55e;
+}
+
+.addendumImpactTop {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+  margin-bottom: 10px;
+}
+
+@media (max-width: 900px) {
+  .addendumHero {
+    grid-template-columns: 1fr;
+  }
+
+  .addendumImpactTop {
+    flex-direction: column;
+  }
+}
