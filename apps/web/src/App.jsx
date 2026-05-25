@@ -7,6 +7,7 @@ import RequirementsView from "./views/RequirementsView.jsx";
 import ClarificationsView from "./views/ClarificationsView.jsx";
 import ActionStat from "./components/ActionStat.jsx";
 import ExecutiveMetric from "./components/ExecutiveMetric.jsx";
+import ExecutiveStage from "./components/ExecutiveStage.jsx";
 function L(en, id) {
   return en || id || "";
 }
@@ -2303,15 +2304,6 @@ function ExecutiveDashboardCard({
           )}
         </div>
       </div>
-    </div>
-  );
-}
-
-function ExecutiveStage({ label, value }) {
-  return (
-    <div className="executiveStage">
-      <span>{label}</span>
-      <strong>{value}</strong>
     </div>
   );
 }
