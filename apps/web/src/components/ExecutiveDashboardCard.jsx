@@ -1,3 +1,5 @@
+import ExecutiveMetric from "./ExecutiveMetric.jsx";
+import ExecutiveStage from "./ExecutiveStage.jsx";
 export default function ExecutiveDashboardCard({
   readinessSummary,
   decisionGate,
