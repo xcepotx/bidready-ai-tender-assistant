@@ -33,6 +33,7 @@ import DecisionGateHistoryView from "./views/DecisionGateHistoryView.jsx";
 import { L, translateRequirementTextForUi } from "./utils/i18n.js";
 import { apiFetch, downloadApiFile } from "./api/client.js";
 import { useAuthSession } from "./hooks/useAuthSession.js";
+import { useActorName } from "./hooks/useActorName.js";
 
 const emptyProjectForm = {
   title: "",
@@ -81,9 +82,7 @@ function App() {
   const [uploadFile, setUploadFile] = useState(null);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
-  const [actorName, setActorName] = useState(() => {
-    return window.localStorage.getItem("bra_actor") || "bid_manager";
-  });
+  const [actorName, setActorName] = useActorName();
 
   const {
     authUser,
@@ -235,11 +234,7 @@ async function checkHealth() {
     loadProjects();
   }, []);
 
-  useEffect(() => {
-    window.localStorage.setItem("bra_actor", actorName);
-  }, [actorName]);
-
-  useEffect(() => {
+useEffect(() => {
     if (selectedProjectId) {
       loadProjectData(selectedProjectId);
     }
