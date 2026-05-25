@@ -11,6 +11,7 @@ import ExecutiveStage from "./components/ExecutiveStage.jsx";
 import EvidenceStat from "./components/EvidenceStat.jsx";
 import RiskStat from "./components/RiskStat.jsx";
 import ComplianceMetric from "./components/ComplianceMetric.jsx";
+import ComplianceRelationBox from "./components/ComplianceRelationBox.jsx";
 function L(en, id) {
   return en || id || "";
 }
@@ -3603,22 +3604,6 @@ function RelationBox({ title, values }) {
     </div>
   );
 }
-
-function ComplianceRelationBox({ title, values = [] }) {
-  const safeValues = Array.isArray(values) ? values.filter((item) => item !== null && item !== undefined) : [];
-
-  return (
-    <div className="relationBox">
-      <span>{title}</span>
-      <strong>{safeValues.length ? safeValues.join(", ") : "-"}</strong>
-    </div>
-  );
-}
-
-
-
-
-
 
 function ProposalTemplateView({
   proposalTemplate,
