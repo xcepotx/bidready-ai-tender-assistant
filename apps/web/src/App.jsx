@@ -31,9 +31,10 @@ import ActorSelector from "./components/ActorSelector.jsx";
 import AuditLogView from "./views/AuditLogView.jsx";
 import DecisionGateHistoryView from "./views/DecisionGateHistoryView.jsx";
 import { L, translateRequirementTextForUi } from "./utils/i18n.js";
-import { apiFetch, downloadApiFile } from "./api/client.js";
+import { apiFetch } from "./api/client.js";
 import { useAuthSession } from "./hooks/useAuthSession.js";
 import { useActorName } from "./hooks/useActorName.js";
+import { useTenderDownloads } from "./hooks/useTenderDownloads.js";
 
 const emptyProjectForm = {
   title: "",
@@ -92,6 +93,18 @@ function App() {
     loginWithPassword,
     logoutUser,
   } = useAuthSession({ setBusy, setMessage, setActorName });
+
+  const {
+    downloadReadinessMatrix,
+    downloadProposalDraft,
+    downloadExecutivePack,
+  } = useTenderDownloads({
+    selectedProjectId,
+    requirements,
+    proposalOutline,
+    setBusy,
+    setMessage,
+  });
 
   const selectedProject = useMemo(() => {
     return projects.find((item) => item.id === Number(selectedProjectId)) || null;
@@ -423,35 +436,7 @@ useEffect(() => {
     }
   }
 
-  async function downloadReadinessMatrix() {
-    if (!selectedProjectId) {
-      setMessage("Select a bid project first.");
-      return;
-    }
-
-    if (requirements.length === 0) {
-      setMessage("Analyze RFP first before exporting the readiness matrix.");
-      return;
-    }
-
-    setBusy(true);
-    setMessage("");
-
-    try {
-        await downloadApiFile(
-          `/api/v1/projects/${selectedProjectId}/exports/checklist.xlsx`,
-          `bidready_ai_tender_report_project_${selectedProjectId}.xlsx`
-        );
-
-      setMessage("Readiness matrix exported.");
-    } catch (err) {
-      setMessage(`Export failed: ${err.message}`);
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function bulkUpdateRequirements(requirementIds, patch) {
+async function bulkUpdateRequirements(requirementIds, patch) {
     if (!selectedProjectId || requirementIds.length === 0) return;
 
     setBusy(true);
@@ -657,35 +642,7 @@ useEffect(() => {
     }
   }
 
-  async function downloadProposalDraft() {
-    if (!selectedProjectId) {
-      setMessage("Select a bid project first.");
-      return;
-    }
-
-    if (proposalOutline.length === 0) {
-      setMessage("Generate proposal outline first before exporting proposal draft.");
-      return;
-    }
-
-    setBusy(true);
-    setMessage("");
-
-    try {
-        await downloadApiFile(
-          `/api/v1/projects/${selectedProjectId}/exports/proposal-draft.docx`,
-          `bidready_ai_proposal_draft_project_${selectedProjectId}.docx`
-        );
-
-      setMessage("Proposal draft exported.");
-    } catch (err) {
-      setMessage(`Proposal draft export failed: ${err.message}`);
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function generateEvidencePack() {
+async function generateEvidencePack() {
     if (!selectedProjectId) {
       setMessage("Select a bid project first.");
       return;
@@ -806,29 +763,7 @@ async function updateProposalTemplate(patch) {
     }
   }
 
-  async function downloadExecutivePack() {
-    if (!selectedProjectId) {
-      setMessage("Select a bid project first.");
-      return;
-    }
-
-    setBusy(true);
-    setMessage("Preparing executive pack export...");
-
-    try {
-      await downloadApiFile(
-        `/api/v1/projects/${selectedProjectId}/exports/executive-pack.zip`,
-        `bidready_ai_executive_pack_project_${selectedProjectId}.zip`
-      );
-      setMessage("Executive pack export downloaded.");
-    } catch (err) {
-      setMessage(`Executive pack export failed: ${err.message}`);
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function generateClarificationResponseTracker() {
+async function generateClarificationResponseTracker() {
     if (!selectedProjectId) {
       setMessage("Select a bid project first.");
       return;
