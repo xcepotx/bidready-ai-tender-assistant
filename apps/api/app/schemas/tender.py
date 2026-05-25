@@ -631,3 +631,46 @@ class ApprovalStepUpdate(BaseModel):
     decision_note: str | None = None
     decided_by: str | None = None
 
+class DecisionGateHistoryEventResponse(BaseModel):
+    id: int
+    project_id: int | None
+    created_at: datetime
+    actor: str | None
+    action: str
+    event_type: str
+    title: str
+    summary: str | None
+    entity_type: str
+    entity_id: int | None
+    status_from: str | None
+    status_to: str | None
+    score_from: int | None = None
+    score_to: int | None = None
+    target: str | None = None
+    changed_fields: list
+    details: dict
+    before_json: dict | None
+    after_json: dict | None
+    notes: str | None
+
+
+class DecisionGateHistorySummaryResponse(BaseModel):
+    total_events: int
+    decision_events: int
+    approval_events: int
+    latest_decision_status: str | None
+    latest_recommendation: str | None
+    readiness_score: int | None
+    latest_approval_status: str | None
+    approved_steps: int
+    pending_steps: int
+    rejected_steps: int
+    changes_requested_steps: int
+    last_event_at: datetime | None
+    last_actor: str | None
+
+
+class DecisionGateApprovalHistoryResponse(BaseModel):
+    summary: DecisionGateHistorySummaryResponse
+    events: list[DecisionGateHistoryEventResponse]
+

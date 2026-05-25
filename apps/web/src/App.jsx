@@ -22,6 +22,7 @@ function App() {
   const [proposalOutline, setProposalOutline] = useState([]);
   const [evidencePack, setEvidencePack] = useState([]);
   const [decisionGate, setDecisionGate] = useState(null);
+  const [decisionGateHistory, setDecisionGateHistory] = useState({ summary: null, events: [] });
   const [complianceScorecard, setComplianceScorecard] = useState({ summary: null, items: [] });
   const [approvalWorkflow, setApprovalWorkflow] = useState({ summary: null, request: null, steps: [] });
   const [riskItems, setRiskItems] = useState([]);
@@ -129,7 +130,7 @@ function App() {
     if (!projectId) return;
 
     try {
-      const [docs, reqs, qs, responseItems, proposalSections, evidenceItems, gate, approvalData, complianceData, riskItemsData, actionItemsData, language, audits, summary, metadata, brief] = await Promise.all([
+      const [docs, reqs, qs, responseItems, proposalSections, evidenceItems, gate, gateHistory, approvalData, complianceData, riskItemsData, actionItemsData, language, audits, summary, metadata, brief] = await Promise.all([
         apiFetch(`/api/v1/projects/${projectId}/documents`).catch(() => []),
         apiFetch(`/api/v1/projects/${projectId}/requirements`).catch(() => []),
         apiFetch(`/api/v1/projects/${projectId}/clarifications`).catch(() => []),
@@ -137,6 +138,7 @@ function App() {
         apiFetch(`/api/v1/projects/${projectId}/proposal-outline`).catch(() => []),
         apiFetch(`/api/v1/projects/${projectId}/evidence-pack`).catch(() => []),
         apiFetch(`/api/v1/projects/${projectId}/decision-gate`).catch(() => null),
+        apiFetch(`/api/v1/projects/${projectId}/decision-gate-history`).catch(() => ({ summary: null, events: [] })),
         apiFetch(`/api/v1/projects/${projectId}/approval-workflow`).catch(() => ({ summary: null, request: null, steps: [] })),
         apiFetch(`/api/v1/projects/${projectId}/compliance-scorecard`).catch(() => ({ summary: null, items: [] })),
         apiFetch(`/api/v1/projects/${projectId}/risk-register`).catch(() => []),
@@ -158,6 +160,7 @@ function App() {
       setProposalOutline(proposalSections);
       setEvidencePack(evidenceItems);
       setDecisionGate(gate);
+      setDecisionGateHistory(gateHistory || { summary: null, events: [] });
       setApprovalWorkflow(approvalData || { summary: null, request: null, steps: [] });
       setComplianceScorecard(complianceData || { summary: null, items: [] });
       setRiskItems(riskItemsData || []);
@@ -1302,6 +1305,7 @@ function App() {
           <ProjectViewTabs
             activeProjectView={activeProjectView}
             setActiveProjectView={setActiveProjectView}
+            decisionGateHistory={decisionGateHistory}
             approvalWorkflow={approvalWorkflow}
             complianceScorecard={complianceScorecard}
             riskItems={riskItems}
@@ -1445,6 +1449,10 @@ function App() {
             />
           )}
 
+          {activeProjectView === "gateHistory" && (
+            <DecisionGateHistoryView decisionGateHistory={decisionGateHistory} />
+          )}
+
           {activeProjectView === "audit" && (
             <AuditLogView auditLogs={auditLogs} />
           )}
@@ -1541,7 +1549,7 @@ function formatWibDateTime(value) {
   }).format(date)} WIB`;
 }
 
-function ProjectViewTabs({ activeProjectView, setActiveProjectView, approvalWorkflow = { summary: null, request: null, steps: [] }, complianceScorecard = { summary: null, items: [] }, riskItems = [], actionItems = [] }) {
+function ProjectViewTabs({ activeProjectView, setActiveProjectView, decisionGateHistory = { summary: null, events: [] }, approvalWorkflow = { summary: null, request: null, steps: [] }, complianceScorecard = { summary: null, items: [] }, riskItems = [], actionItems = [] }) {
   const tabs = [
     { key: "summary", label: "Summary", shortLabel: "Summary", icon: LayoutDashboard },
     { key: "requirements", label: "Requirements", shortLabel: "Reqs", icon: ClipboardCheck },
@@ -1551,6 +1559,7 @@ function ProjectViewTabs({ activeProjectView, setActiveProjectView, approvalWork
     { key: "evidence", label: "Evidence Pack", shortLabel: "Evidence", icon: FileText },
     { key: "compliance", label: "Compliance Matrix", shortLabel: "Compliance", icon: ShieldCheck, badge: complianceScorecard?.summary?.score_percent ?? 0 },
     { key: "approvals", label: "Approval Workflow", shortLabel: "Approvals", icon: CheckCircle2, badge: approvalWorkflow?.summary?.pending_steps ?? 0 },
+    { key: "gateHistory", label: "Gate History", shortLabel: "Gate Hist", icon: History, badge: decisionGateHistory?.summary?.total_events ?? 0 },
     { key: "risks", label: "Risk Register", shortLabel: "Risks", icon: AlertTriangle, badge: riskItems.length },
     { key: "actions", label: "Action Tracker", shortLabel: "Actions", icon: ClipboardCheck, badge: actionItems.length },
     { key: "audit", label: "Audit Log", shortLabel: "Audit", icon: History },
@@ -3814,6 +3823,133 @@ function ComplianceRelationBox({ title, values = [] }) {
   );
 }
 
+
+
+function DecisionGateHistoryView({ decisionGateHistory = { summary: null, events: [] } }) {
+  const [eventFilter, setEventFilter] = useState("all");
+
+  const summary = decisionGateHistory?.summary || {};
+  const events = Array.isArray(decisionGateHistory?.events) ? decisionGateHistory.events : [];
+
+  const filteredEvents = events.filter((event) => {
+    if (eventFilter === "all") return true;
+    return event.event_type === eventFilter;
+  });
+
+  return (
+    <div className="workspaceView gateHistoryView">
+      <div className="viewHeader gateHistoryHeader">
+        <div>
+          <p className="eyebrow">Decision Gate Approval History</p>
+          <h2>Decision and approval timeline</h2>
+          <p className="muted">
+            Read-only timeline built from audit logs for decision gate changes and approval workflow actions.
+          </p>
+        </div>
+      </div>
+
+      <div className="gateHistorySummary">
+        <div className="gateHistoryStatusCard">
+          <span>Decision Status</span>
+          <strong>{summary.latest_decision_status || "-"}</strong>
+          <p>{summary.latest_recommendation || "No recommendation available."}</p>
+        </div>
+
+        <div className="gateHistoryStatusCard">
+          <span>Approval Status</span>
+          <strong>{summary.latest_approval_status || "-"}</strong>
+          <p>
+            Approved {summary.approved_steps ?? 0}, pending {summary.pending_steps ?? 0}, changes {summary.changes_requested_steps ?? 0}, rejected {summary.rejected_steps ?? 0}.
+          </p>
+        </div>
+
+        <div className="gateHistoryStatusCard">
+          <span>Readiness Score</span>
+          <strong>{summary.readiness_score ?? 0}</strong>
+          <p>Last actor: {summary.last_actor || "-"}.</p>
+        </div>
+      </div>
+
+      <div className="actionStatGrid gateHistoryStats">
+        <ComplianceMetric label="Total Events" value={summary.total_events ?? events.length} />
+        <ComplianceMetric label="Decision Events" value={summary.decision_events ?? 0} />
+        <ComplianceMetric label="Approval Events" value={summary.approval_events ?? 0} />
+      </div>
+
+      <div className="actionFilterBar gateHistoryFilterBar">
+        <label>
+          Event Type
+          <select value={eventFilter} onChange={(e) => setEventFilter(e.target.value)}>
+            <option value="all">All events</option>
+            <option value="decision_gate">Decision gate</option>
+            <option value="approval_workflow">Approval workflow</option>
+            <option value="approval_step">Approval step</option>
+          </select>
+        </label>
+      </div>
+
+      {filteredEvents.length === 0 ? (
+        <div className="sectionBox actionEmptyState">
+          <h3>No history yet</h3>
+          <p className="muted">Generate a decision gate or approval workflow to populate this timeline.</p>
+        </div>
+      ) : (
+        <div className="gateTimeline">
+          {filteredEvents.map((event) => (
+            <article key={event.id} className={`gateTimelineCard ${event.event_type}`}>
+              <div className="gateTimelineDot" />
+              <div className="gateTimelineBody">
+                <div className="gateTimelineTop">
+                  <div>
+                    <span className="sourcePill">{event.event_type}</span>
+                    <span className="sourcePill">{event.action}</span>
+                  </div>
+                  <time>{event.created_at ? new Date(event.created_at).toLocaleString() : "-"}</time>
+                </div>
+
+                <h3>{event.title}</h3>
+                {event.summary && <p>{event.summary}</p>}
+
+                <div className="actionItemMetaGrid">
+                  <div>
+                    <span>Actor</span>
+                    <strong>{event.actor || "-"}</strong>
+                  </div>
+                  <div>
+                    <span>Status</span>
+                    <strong>{event.status_from || "-"} → {event.status_to || "-"}</strong>
+                  </div>
+                  <div>
+                    <span>Score / Step</span>
+                    <strong>{event.score_from ?? "-"} → {event.score_to ?? "-"}</strong>
+                  </div>
+                  <div>
+                    <span>Target</span>
+                    <strong>{event.target || "-"}</strong>
+                  </div>
+                </div>
+
+                {event.changed_fields?.length > 0 && (
+                  <div className="gateChangedFields">
+                    {event.changed_fields.map((field) => (
+                      <span key={field}>{field}</span>
+                    ))}
+                  </div>
+                )}
+
+                {event.details?.decision_note && (
+                  <p className="approvalDecisionMeta">
+                    Note: {event.details.decision_note}
+                  </p>
+                )}
+              </div>
+            </article>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 function ApprovalWorkflowView({
   approvalWorkflow = { summary: null, request: null, steps: [] },

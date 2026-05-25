@@ -32,6 +32,7 @@ from app.routers.action_items import router as action_items_router
 from app.routers.risk_register import router as risk_register_router
 from app.routers.compliance_scorecard import router as compliance_scorecard_router
 from app.routers.approval_workflow import router as approval_workflow_router
+from app.routers.decision_gate_history import router as decision_gate_history_router
 from app.security.internal_key import require_internal_api_key
 
 
@@ -99,3 +100,4 @@ app.include_router(action_items_router, dependencies=[Depends(require_internal_a
 app.include_router(risk_register_router, dependencies=[Depends(require_internal_api_key)])
 app.include_router(compliance_scorecard_router, dependencies=[Depends(require_internal_api_key)])
 app.include_router(approval_workflow_router, dependencies=[Depends(require_internal_api_key)])
+app.include_router(decision_gate_history_router, dependencies=[Depends(require_internal_api_key)])

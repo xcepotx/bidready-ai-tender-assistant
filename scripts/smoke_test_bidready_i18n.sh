@@ -283,6 +283,13 @@ api_patch_json "/api/v1/approval-steps/${APPROVAL_STEP_ID}" \
   '{"status":"approved","decision_note":"Smoke test approved","decided_by":"smoke_test"}' > "$TMP_DIR/approval_step_update.json"
 assert_jq "$TMP_DIR/approval_step_update.json" '.status == "approved"' "Approval step approve works"
 
+log "Validate Decision Gate Approval History"
+api_get "/api/v1/projects/${PROJECT_ID}/decision-gate-history" > "$TMP_DIR/decision_gate_history.json"
+assert_jq "$TMP_DIR/decision_gate_history.json" '.events | length > 0' "Decision Gate Approval History exists"
+assert_jq "$TMP_DIR/decision_gate_history.json" '.summary.total_events > 0' "Decision Gate Approval History summary available"
+assert_jq "$TMP_DIR/decision_gate_history.json" 'any(.events[]; .action == "generate_decision_gate")' "Decision Gate history includes decision event"
+assert_jq "$TMP_DIR/decision_gate_history.json" 'any(.events[]; (.action | test("approval")))' "Decision Gate history includes approval event"
+
 log "Validate Audit Log"
 api_get "/api/v1/projects/${PROJECT_ID}/audit-logs" > "$TMP_DIR/audit_logs.json"
 assert_jq "$TMP_DIR/audit_logs.json" 'length > 0' "Audit logs exist"

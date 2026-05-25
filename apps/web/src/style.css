@@ -4574,3 +4574,131 @@ button:hover {
     justify-content: flex-start;
   }
 }
+
+/* ===== Decision Gate Approval History ===== */
+
+.gateHistoryView .gateHistoryHeader {
+  background:
+    radial-gradient(circle at top right, rgba(99, 102, 241, 0.12), transparent 34%),
+    #ffffff;
+}
+
+.gateHistorySummary {
+  display: grid;
+  grid-template-columns: 1.3fr 1fr 0.7fr;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.gateHistoryStatusCard {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 20px;
+  padding: 16px;
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.06);
+}
+
+.gateHistoryStatusCard span {
+  display: block;
+  font-size: 11px;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  margin-bottom: 6px;
+}
+
+.gateHistoryStatusCard strong {
+  display: block;
+  font-size: 22px;
+  color: #0f172a;
+  margin-bottom: 6px;
+}
+
+.gateHistoryStatusCard p {
+  color: #475569;
+  font-size: 13px;
+  margin: 0;
+}
+
+.gateTimeline {
+  position: relative;
+  display: grid;
+  gap: 14px;
+}
+
+.gateTimelineCard {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
+  gap: 12px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-left: 6px solid #94a3b8;
+  border-radius: 20px;
+  padding: 16px;
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.06);
+}
+
+.gateTimelineCard.decision_gate {
+  border-left-color: #6366f1;
+}
+
+.gateTimelineCard.approval_workflow {
+  border-left-color: #2563eb;
+}
+
+.gateTimelineCard.approval_step {
+  border-left-color: #22c55e;
+}
+
+.gateTimelineDot {
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  margin-top: 6px;
+  background: #6366f1;
+  box-shadow: 0 0 0 6px #eef2ff;
+}
+
+.gateTimelineTop {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+  margin-bottom: 10px;
+}
+
+.gateTimelineTop time {
+  color: #64748b;
+  font-size: 12px;
+}
+
+.gateTimelineBody h3 {
+  margin: 0 0 6px;
+}
+
+.gateTimelineBody p {
+  color: #475569;
+}
+
+.gateChangedFields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.gateChangedFields span {
+  border-radius: 999px;
+  background: #eef2ff;
+  color: #3730a3;
+  padding: 5px 9px;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+@media (max-width: 900px) {
+  .gateHistorySummary,
+  .gateTimelineCard {
+    grid-template-columns: 1fr;
+  }
+}
