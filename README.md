@@ -1,5 +1,13 @@
 # BidReady AI Tender Assistant
 
+<!-- BIDREADY_DEPLOYMENT_HARDENING_CHECKLIST -->
+## Deployment Hardening Checklist
+
+Production readiness checklist is available here:
+
+- [`docs/DEPLOYMENT_HARDENING_CHECKLIST.md`](docs/DEPLOYMENT_HARDENING_CHECKLIST.md)
+
+
 <!-- BIDREADY_RELEASE_CHECKPOINT_V0_2_0 -->
 ## Release Checkpoint v0.2.0
 
