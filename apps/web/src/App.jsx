@@ -5,6 +5,7 @@ import "./style.css";
 import ProjectViewTabs from "./components/ProjectViewTabs.jsx";
 import RequirementsView from "./views/RequirementsView.jsx";
 import ClarificationsView from "./views/ClarificationsView.jsx";
+import ActionStat from "./components/ActionStat.jsx";
 function L(en, id) {
   return en || id || "";
 }
@@ -5453,15 +5454,6 @@ function ActionTrackerView({
           />
         ))}
       </div>
-    </div>
-  );
-}
-
-function ActionStat({ label, value, tone = "neutral" }) {
-  return (
-    <div className={`actionStat ${tone}`}>
-      <strong>{value}</strong>
-      <span>{label}</span>
     </div>
   );
 }
