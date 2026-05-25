@@ -1,16 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
-import {
-  AlertTriangle,
-  ClipboardCheck,
-  FileQuestion,
-  FileText,
-  History,
-  LayoutDashboard,
-  Plus,
-  RefreshCw,
-  Upload,
-} from "lucide-react";
+import { AlertTriangle, ClipboardCheck, FileQuestion, FileText, History, LayoutDashboard, Plus, RefreshCw, Upload } from "lucide-react";
 import "./style.css";
 
 const emptyProjectForm = {
@@ -1087,7 +1077,12 @@ function App() {
             </div>
           </div>
 
-          <ProjectViewTabs activeProjectView={activeProjectView} setActiveProjectView={setActiveProjectView} />
+          <ProjectViewTabs
+            activeProjectView={activeProjectView}
+            setActiveProjectView={setActiveProjectView}
+            riskItems={riskItems}
+            actionItems={actionItems}
+          />
 
           {activeProjectView === "summary" && (
             <SummaryView
@@ -1185,6 +1180,15 @@ function App() {
               projectMetadata={projectMetadata}
               responsePlan={responsePlan}
               proposalOutline={proposalOutline}
+            />
+          )}
+
+          {activeProjectView === "risks" && (
+            <RiskRegisterView
+              riskItems={riskItems}
+              busy={busy}
+              generateRiskRegister={generateRiskRegister}
+              updateRiskItem={updateRiskItem}
             />
           )}
 
@@ -1293,7 +1297,7 @@ function formatWibDateTime(value) {
   }).format(date)} WIB`;
 }
 
-function ProjectViewTabs({ activeProjectView, setActiveProjectView, actionItems = [] }) {
+function ProjectViewTabs({ activeProjectView, setActiveProjectView, riskItems = [], actionItems = [] }) {
   const tabs = [
     { key: "summary", label: "Summary", shortLabel: "Summary", icon: LayoutDashboard },
     { key: "requirements", label: "Requirements", shortLabel: "Reqs", icon: ClipboardCheck },
@@ -1301,6 +1305,7 @@ function ProjectViewTabs({ activeProjectView, setActiveProjectView, actionItems 
     { key: "response", label: "Response Plan", shortLabel: "Response", icon: FileText },
     { key: "proposal", label: "Proposal Outline", shortLabel: "Proposal", icon: FileText },
     { key: "evidence", label: "Evidence Pack", shortLabel: "Evidence", icon: FileText },
+    { key: "risks", label: "Risk Register", shortLabel: "Risks", icon: AlertTriangle, badge: riskItems.length },
     { key: "actions", label: "Action Tracker", shortLabel: "Actions", icon: ClipboardCheck, badge: actionItems.length },
     { key: "audit", label: "Audit Log", shortLabel: "Audit", icon: History },
   ];
@@ -1316,7 +1321,10 @@ function ProjectViewTabs({ activeProjectView, setActiveProjectView, actionItems 
             onClick={() => setActiveProjectView(tab.key)}
           >
             <Icon size={17} />
-            {tab.shortLabel || tab.label}
+              <span>{tab.shortLabel || tab.label}</span>
+              {typeof tab.badge === "number" && (
+                <span className="tabBadge">{tab.badge}</span>
+              )}
           </button>
         );
       })}
@@ -3525,6 +3533,295 @@ function RelationBox({ title, values }) {
     <div className="relationBox">
       <strong>{title}</strong>
       {values.length === 0 ? <span>-</span> : <span>{values.join(", ")}</span>}
+    </div>
+  );
+}
+
+
+function RiskStat({ label, value, tone = "" }) {
+  return (
+    <div className={`actionStat ${tone}`}>
+      <strong>{value}</strong>
+      <span>{label}</span>
+    </div>
+  );
+}
+
+function RiskRegisterView({
+  riskItems = [],
+  busy,
+  generateRiskRegister,
+  updateRiskItem,
+}) {
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [severityFilter, setSeverityFilter] = useState("all");
+  const [ownerFilter, setOwnerFilter] = useState("all");
+  const [categoryFilter, setCategoryFilter] = useState("all");
+
+  const safeItems = Array.isArray(riskItems) ? riskItems : [];
+  const severityRank = { critical: 0, high: 1, medium: 2, low: 3 };
+
+  const owners = useMemo(
+    () => Array.from(new Set(safeItems.map((item) => item.owner).filter(Boolean))).sort(),
+    [safeItems]
+  );
+
+  const categories = useMemo(
+    () => Array.from(new Set(safeItems.map((item) => item.risk_category).filter(Boolean))).sort(),
+    [safeItems]
+  );
+
+  const filteredItems = safeItems
+    .filter((item) => {
+      if (statusFilter !== "all" && item.status !== statusFilter) return false;
+      if (severityFilter !== "all" && item.severity !== severityFilter) return false;
+      if (ownerFilter !== "all" && item.owner !== ownerFilter) return false;
+      if (categoryFilter !== "all" && item.risk_category !== categoryFilter) return false;
+      return true;
+    })
+    .sort((a, b) => {
+      const severityDiff = (severityRank[a.severity] ?? 2) - (severityRank[b.severity] ?? 2);
+      if (severityDiff !== 0) return severityDiff;
+      return String(a.owner || "").localeCompare(String(b.owner || ""));
+    });
+
+  const counts = {
+    critical: safeItems.filter((item) => item.severity === "critical").length,
+    high: safeItems.filter((item) => item.severity === "high").length,
+    open: safeItems.filter((item) => item.status === "open").length,
+    mitigating: safeItems.filter((item) => item.status === "mitigating").length,
+    escalated: safeItems.filter((item) => item.status === "escalated").length,
+  };
+
+  return (
+    <div className="workspaceView actionTrackerView riskRegisterView">
+      <div className="viewHeader actionTrackerHeader">
+        <div>
+          <p className="eyebrow">Risk Register</p>
+          <h2>Tender risk register and mitigation tracker</h2>
+          <p className="muted">
+            Generated from high-risk requirements, clarifications, response risks, evidence gaps, and decision gate blockers.
+          </p>
+        </div>
+
+        <button
+          type="button"
+          className="regenerateAllButton"
+          disabled={busy}
+          onClick={generateRiskRegister}
+        >
+          Generate Risk Register
+        </button>
+      </div>
+
+      <div className="actionStatGrid riskStatGrid">
+        <RiskStat label="Total" value={safeItems.length} />
+        <RiskStat label="Critical" value={counts.critical} tone="danger" />
+        <RiskStat label="High" value={counts.high} tone="danger" />
+        <RiskStat label="Open" value={counts.open} tone="warning" />
+        <RiskStat label="Mitigating" value={counts.mitigating} />
+        <RiskStat label="Escalated" value={counts.escalated} tone="danger" />
+      </div>
+
+      <div className="actionFilterBar riskFilterBar">
+        <label>
+          Status
+          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+            <option value="all">All statuses</option>
+            <option value="open">Open</option>
+            <option value="mitigating">Mitigating</option>
+            <option value="monitored">Monitored</option>
+            <option value="accepted">Accepted</option>
+            <option value="closed">Closed</option>
+            <option value="escalated">Escalated</option>
+          </select>
+        </label>
+
+        <label>
+          Severity
+          <select value={severityFilter} onChange={(e) => setSeverityFilter(e.target.value)}>
+            <option value="all">All severities</option>
+            <option value="critical">Critical</option>
+            <option value="high">High</option>
+            <option value="medium">Medium</option>
+            <option value="low">Low</option>
+          </select>
+        </label>
+
+        <label>
+          Owner
+          <select value={ownerFilter} onChange={(e) => setOwnerFilter(e.target.value)}>
+            <option value="all">All owners</option>
+            {owners.map((owner) => (
+              <option key={owner} value={owner}>{owner}</option>
+            ))}
+          </select>
+        </label>
+
+        <label>
+          Category
+          <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}>
+            <option value="all">All categories</option>
+            {categories.map((category) => (
+              <option key={category} value={category}>{category}</option>
+            ))}
+          </select>
+        </label>
+      </div>
+
+      <p className="actionTrackerMeta">
+        Showing {filteredItems.length} of {safeItems.length} risk item(s).
+      </p>
+
+      {filteredItems.length === 0 ? (
+        <div className="sectionBox actionEmptyState">
+          <h3>No risks yet</h3>
+          <p className="muted">Generate the risk register after requirements, response plan, evidence pack, and decision gate are available.</p>
+        </div>
+      ) : (
+        <div className="actionItemGrid riskItemGrid">
+          {filteredItems.map((item) => (
+            <article
+              key={item.id}
+              className={`actionItemCard riskItemCard ${item.severity || "medium"} ${item.status === "closed" ? "done" : ""}`}
+            >
+              <div className="actionItemTop">
+                <div>
+                  <span className={`priorityPill ${item.severity || "medium"}`}>{item.severity || "medium"}</span>
+                  <span className="sourcePill">{item.source_type || "source"}</span>
+                  <span className="sourcePill">{item.impact_area || "impact"}</span>
+                </div>
+
+                <select
+                  value={item.status || "open"}
+                  disabled={busy}
+                  onChange={(e) => updateRiskItem(item.id, { status: e.target.value })}
+                >
+                  <option value="open">Open</option>
+                  <option value="mitigating">Mitigating</option>
+                  <option value="monitored">Monitored</option>
+                  <option value="accepted">Accepted</option>
+                  <option value="closed">Closed</option>
+                  <option value="escalated">Escalated</option>
+                </select>
+              </div>
+
+              <h3>{item.title}</h3>
+              {item.description && <p>{item.description}</p>}
+
+              <div className="actionItemMetaGrid">
+                <div>
+                  <span>Category</span>
+                  <strong>{item.risk_category || "-"}</strong>
+                </div>
+                <div>
+                  <span>Probability</span>
+                  <strong>{item.probability || "-"}</strong>
+                </div>
+                <div>
+                  <span>Impact</span>
+                  <strong>{item.impact || "-"}</strong>
+                </div>
+                <div>
+                  <span>Owner</span>
+                  <strong>{item.owner || "Unassigned"}</strong>
+                </div>
+              </div>
+
+              <div className="riskInlineEditGrid">
+                <label>
+                  Owner
+                  <input
+                    className="tableInput"
+                    defaultValue={item.owner || ""}
+                    disabled={busy}
+                    onBlur={(e) => {
+                      if (e.target.value !== (item.owner || "")) {
+                        updateRiskItem(item.id, { owner: e.target.value });
+                      }
+                    }}
+                  />
+                </label>
+
+                <label>
+                  Due Date
+                  <input
+                    className="tableInput"
+                    defaultValue={item.due_date || ""}
+                    disabled={busy}
+                    onBlur={(e) => {
+                      if (e.target.value !== (item.due_date || "")) {
+                        updateRiskItem(item.id, { due_date: e.target.value });
+                      }
+                    }}
+                  />
+                </label>
+              </div>
+
+              <div className="riskPlanGrid">
+                <label>
+                  Mitigation Plan
+                  <textarea
+                    className="tableTextarea"
+                    defaultValue={item.mitigation_plan || ""}
+                    disabled={busy}
+                    onBlur={(e) => {
+                      if (e.target.value !== (item.mitigation_plan || "")) {
+                        updateRiskItem(item.id, { mitigation_plan: e.target.value });
+                      }
+                    }}
+                  />
+                </label>
+
+                <label>
+                  Contingency Plan
+                  <textarea
+                    className="tableTextarea"
+                    defaultValue={item.contingency_plan || ""}
+                    disabled={busy}
+                    onBlur={(e) => {
+                      if (e.target.value !== (item.contingency_plan || "")) {
+                        updateRiskItem(item.id, { contingency_plan: e.target.value });
+                      }
+                    }}
+                  />
+                </label>
+              </div>
+
+              {item.trigger_event && (
+                <p className="actionItemNotes">
+                  <strong>Trigger:</strong> {item.trigger_event}
+                </p>
+              )}
+
+              <div className="evidenceRelationGrid">
+                <RelationBox title="Requirement IDs" values={item.related_requirement_ids || []} />
+                <RelationBox title="Response Item IDs" values={item.related_response_item_ids || []} />
+                <RelationBox title="Clarification IDs" values={item.related_clarification_ids || []} />
+                <RelationBox title="Evidence IDs" values={item.related_evidence_item_ids || []} />
+              </div>
+
+              <div className="actionQuickControls">
+                <button type="button" disabled={busy} onClick={() => updateRiskItem(item.id, { status: "mitigating" })}>
+                  Mark Mitigating
+                </button>
+                <button type="button" disabled={busy} onClick={() => updateRiskItem(item.id, { status: "monitored" })}>
+                  Monitor
+                </button>
+                <button type="button" disabled={busy} onClick={() => updateRiskItem(item.id, { status: "accepted" })}>
+                  Accept
+                </button>
+                <button type="button" disabled={busy} onClick={() => updateRiskItem(item.id, { status: "closed" })}>
+                  Close
+                </button>
+                <button type="button" disabled={busy} onClick={() => updateRiskItem(item.id, { status: "escalated", severity: "critical" })}>
+                  Escalate
+                </button>
+              </div>
+            </article>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

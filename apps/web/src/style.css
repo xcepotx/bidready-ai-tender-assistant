@@ -4104,3 +4104,66 @@ button:hover {
 .actionQuickControls button {
   min-height: 36px;
 }
+
+/* ===== Risk Register ===== */
+
+.riskRegisterView .viewHeader {
+  background:
+    radial-gradient(circle at top right, rgba(239, 68, 68, 0.10), transparent 34%),
+    #ffffff;
+}
+
+.riskStatGrid {
+  margin-bottom: 14px;
+}
+
+.riskItemCard.critical {
+  border-left-color: #7f1d1d !important;
+}
+
+.riskItemCard.high {
+  border-left-color: #ef4444 !important;
+}
+
+.riskItemCard.medium {
+  border-left-color: #f59e0b !important;
+}
+
+.riskItemCard.low {
+  border-left-color: #22c55e !important;
+}
+
+.riskItemCard.escalated {
+  background: #fff7f7;
+}
+
+.priorityPill.critical {
+  background: #fee2e2;
+  color: #7f1d1d;
+}
+
+.riskInlineEditGrid,
+.riskPlanGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.riskInlineEditGrid label,
+.riskPlanGrid label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: #64748b;
+}
+
+.riskPlanGrid .tableTextarea {
+  min-height: 110px;
+}
+
+@media (max-width: 900px) {
+  .riskInlineEditGrid,
+  .riskPlanGrid {
+    grid-template-columns: 1fr;
+  }
+}

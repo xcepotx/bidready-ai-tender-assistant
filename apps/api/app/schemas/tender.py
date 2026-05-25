@@ -439,7 +439,7 @@ class GenerateActionItemsResponse(BaseModel):
     items: list[ActionItemResponse]
 
 
-class ActionItemResponse(BaseModel):
+class RiskItemResponse(BaseModel):
     id: int
     project_id: int
     title: str
@@ -450,11 +450,17 @@ class ActionItemResponse(BaseModel):
     related_response_item_ids: list
     related_clarification_ids: list
     related_evidence_item_ids: list
-    related_proposal_section_ids: list
+    risk_category: str
+    impact_area: str
+    probability: str
+    impact: str
+    severity: str
     owner: str | None
-    priority: str
     status: str
     due_date: str | None
+    mitigation_plan: str | None
+    contingency_plan: str | None
+    trigger_event: str | None
     confidence: float | None
     notes: str | None
     generation_mode: str
@@ -465,16 +471,23 @@ class ActionItemResponse(BaseModel):
         from_attributes = True
 
 
-class ActionItemUpdate(BaseModel):
+class RiskItemUpdate(BaseModel):
     title: str | None = None
     description: str | None = None
+    risk_category: str | None = None
+    impact_area: str | None = None
+    probability: str | None = None
+    impact: str | None = None
+    severity: str | None = None
     owner: str | None = None
-    priority: str | None = None
     status: str | None = None
     due_date: str | None = None
+    mitigation_plan: str | None = None
+    contingency_plan: str | None = None
+    trigger_event: str | None = None
     notes: str | None = None
 
 
-class GenerateActionItemsResponse(BaseModel):
+class GenerateRiskRegisterResponse(BaseModel):
     generated_count: int
-    items: list[ActionItemResponse]
+    items: list[RiskItemResponse]
