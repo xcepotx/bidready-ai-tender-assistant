@@ -37,6 +37,7 @@ from app.routers.approval_workflow import router as approval_workflow_router
 from app.routers.decision_gate_history import router as decision_gate_history_router
 from app.routers.addendum_impact import router as addendum_impact_router
 from app.routers.clarification_response_tracker import router as clarification_response_tracker_router
+from app.routers.executive_pack import router as executive_pack_router
 from app.security.internal_key import require_internal_api_key
 
 
@@ -107,3 +108,4 @@ app.include_router(approval_workflow_router, dependencies=[Depends(require_inter
 app.include_router(decision_gate_history_router, dependencies=[Depends(require_internal_api_key)])
 app.include_router(addendum_impact_router, dependencies=[Depends(require_internal_api_key)])
 app.include_router(clarification_response_tracker_router, dependencies=[Depends(require_internal_api_key)])
+app.include_router(executive_pack_router, dependencies=[Depends(require_internal_api_key)])

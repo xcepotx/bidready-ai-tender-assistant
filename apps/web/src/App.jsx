@@ -77,7 +77,31 @@ function App() {
     return evidencePack.find((item) => item.id === Number(selectedEvidenceItemId)) || evidencePack[0] || null;
   }, [evidencePack, selectedEvidenceItemId]);
 
-  async function apiFetch(path, options = {}) {
+  
+async function downloadApiFile(path, filename) {
+  const response = await fetch(path, {
+    headers: {
+      "X-Internal-API-Key": INTERNAL_API_KEY,
+    },
+  });
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(text || `Download failed with status ${response.status}`);
+  }
+
+  const blob = await response.blob();
+  const url = window.URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  window.URL.revokeObjectURL(url);
+}
+
+async function apiFetch(path, options = {}) {
     const internalApiKey = import.meta.env.VITE_INTERNAL_API_KEY || "";
     const headers = new Headers(options.headers || {});
 
@@ -814,6 +838,29 @@ function App() {
 
 
 
+
+
+  async function downloadExecutivePack() {
+    if (!selectedProjectId) {
+      setMessage("Select a bid project first.");
+      return;
+    }
+
+    setBusy(true);
+    setMessage("Preparing executive pack export...");
+
+    try {
+      await downloadApiFile(
+        `/api/v1/projects/${selectedProjectId}/exports/executive-pack.zip`,
+        `bidready_ai_executive_pack_project_${selectedProjectId}.zip`
+      );
+      setMessage("Executive pack export downloaded.");
+    } catch (err) {
+      setMessage(`Executive pack export failed: ${err.message}`);
+    } finally {
+      setBusy(false);
+    }
+  }
 
   async function generateClarificationResponseTracker() {
     if (!selectedProjectId) {
@@ -2583,6 +2630,14 @@ function RequirementsView({
                 </div>
                 <strong>{req.requirement_text}</strong>
                 <small>Page {req.source_page || "-"} · {req.status}</small>
+              </button>
+              <button
+                type="button"
+                className="executivePackButton"
+                disabled={busy || !selectedProjectId}
+                onClick={downloadExecutivePack}
+              >
+                Export Executive Pack
               </button>
             </div>
           ))}

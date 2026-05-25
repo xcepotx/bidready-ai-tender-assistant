@@ -4943,3 +4943,23 @@ button:hover {
     flex-direction: column;
   }
 }
+
+
+/* ===== Executive Pack Export ===== */
+
+.executivePackButton {
+  border: 1px solid #1d4ed8;
+  background: linear-gradient(135deg, #1d4ed8, #0f172a);
+  color: #ffffff;
+  border-radius: 14px;
+  padding: 10px 14px;
+  font-weight: 900;
+  cursor: pointer;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.16);
+}
+
+.executivePackButton:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  box-shadow: none;
+}

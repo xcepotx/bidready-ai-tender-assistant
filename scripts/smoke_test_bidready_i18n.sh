@@ -335,6 +335,47 @@ assert_jq "$TMP_DIR/audit_logs.json" \
   'any(.[]; .action == "generate_response_plan") and any(.[]; .action == "generate_proposal_outline") and any(.[]; .action == "generate_decision_gate") and any(.[]; .action == "generate_compliance_scorecard") and any(.[]; .action == "generate_risk_register") and any(.[]; .action == "generate_approval_workflow") and any(.[]; .action == "generate_addendum_impact_analysis") and any(.[]; .action == "generate_clarification_response_tracker")' \
   "Audit logs contain generated artifact actions"
 
+log "Export Executive Pack"
+EXEC_PACK="$TMP_DIR/bidready_ai_executive_pack_project_${PROJECT_ID}.zip"
+curl -fsS -L \
+  -H "X-Internal-API-Key: $KEY" \
+  "$API_BASE/api/v1/projects/${PROJECT_ID}/exports/executive-pack.zip" \
+  -o "$EXEC_PACK"
+python3 - "$EXEC_PACK" <<'PY'
+import json
+import sys
+from pathlib import Path
+from zipfile import ZipFile
+
+path = Path(sys.argv[1])
+required = {
+    "bidready_ai_tender_report.xlsx",
+    "bidready_ai_proposal_draft.docx",
+    "executive_summary.md",
+    "executive_summary.json",
+    "decision_gate_history.json",
+    "approval_workflow.json",
+    "compliance_scorecard.json",
+    "risk_register.json",
+    "action_tracker.json",
+    "clarification_response_tracker.json",
+    "addendum_impact_analysis.json",
+    "audit_logs.json",
+}
+with ZipFile(path) as zf:
+    names = set(zf.namelist())
+    missing = required - names
+    if missing:
+        raise SystemExit(f"Missing executive pack files: {sorted(missing)}")
+    summary = json.loads(zf.read("executive_summary.json").decode("utf-8"))
+    if not summary.get("project", {}).get("id"):
+        raise SystemExit("executive_summary.json missing project id")
+    if "decision_gate" not in summary:
+        raise SystemExit("executive_summary.json missing decision_gate")
+PY
+pass "Executive Pack ZIP export is valid"
+pass "Executive Pack ZIP contains required files"
+
 log "Export Excel and DOCX"
 curl -sS -f -L -o "$TMP_DIR/bidready_ai_tender_report_project_${PROJECT_ID}_id.xlsx" \
   -H "X-Internal-API-Key: $KEY" \
