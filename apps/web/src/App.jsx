@@ -5,7 +5,6 @@ import "./style.css";
 import ProjectViewTabs from "./components/ProjectViewTabs.jsx";
 import RequirementsView from "./views/RequirementsView.jsx";
 import ClarificationsView from "./views/ClarificationsView.jsx";
-import ResponsePlanView from "./views/ResponsePlanView.jsx";
 function L(en, id) {
   return en || id || "";
 }
@@ -2757,7 +2756,15 @@ function ClarificationDetail({ q, busy, updateClarification }) {
   );
 }
 
-) {
+function ResponsePlanView({
+  responsePlan,
+  selectedResponseItem,
+  setSelectedResponseItemId,
+  busy,
+  updateResponseItem,
+  generateResponsePlan,
+  requirements,
+}) {
   const [searchQuery, setSearchQuery] = useState("");
   const [complianceFilter, setComplianceFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
