@@ -13,6 +13,7 @@ import RiskStat from "./components/RiskStat.jsx";
 import ComplianceMetric from "./components/ComplianceMetric.jsx";
 import ComplianceRelationBox from "./components/ComplianceRelationBox.jsx";
 import DecisionList from "./components/DecisionList.jsx";
+import MetadataField from "./components/MetadataField.jsx";
 function L(en, id) {
   return en || id || "";
 }
@@ -2485,15 +2486,6 @@ function RfpMetadataCard({ metadata }) {
           </div>
         )}
       </div>
-    </div>
-  );
-}
-
-function MetadataField({ label, value, highlight = false }) {
-  return (
-    <div className={highlight ? "metadataField highlight" : "metadataField"}>
-      <span>{label}</span>
-      <strong>{value || "-"}</strong>
     </div>
   );
 }
