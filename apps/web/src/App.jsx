@@ -10,6 +10,9 @@ const emptyProjectForm = {
 };
 
 function App() {
+  const [authUser, setAuthUser] = useState(() => getStoredAuthUser());
+  const [authToken, setAuthToken] = useState(() => getStoredAuthToken());
+  const [authForm, setAuthForm] = useState({ email: "admin@bidready.local", password: "" });
   const [apiStatus, setApiStatus] = useState("checking");
   const [projects, setProjects] = useState([]);
   const [selectedProjectId, setSelectedProjectId] = useState(null);
@@ -82,7 +85,7 @@ function App() {
 async function downloadApiFile(path, filename) {
   const response = await fetch(path, {
     headers: {
-      "X-Internal-API-Key": INTERNAL_API_KEY,
+      ...buildAuthHeaders(),
     },
   });
 
@@ -100,6 +103,33 @@ async function downloadApiFile(path, filename) {
   anchor.click();
   anchor.remove();
   window.URL.revokeObjectURL(url);
+}
+
+
+function getStoredAuthToken() {
+  return window.localStorage.getItem(AUTH_TOKEN_STORAGE_KEY);
+}
+
+function getStoredAuthUser() {
+  try {
+    const raw = window.localStorage.getItem(AUTH_USER_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+function buildAuthHeaders(extraHeaders = {}) {
+  const token = getStoredAuthToken();
+  const headers = { ...extraHeaders };
+
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  } else {
+    headers["X-Internal-API-Key"] = INTERNAL_API_KEY;
+  }
+
+  return headers;
 }
 
 async function apiFetch(path, options = {}) {
@@ -280,7 +310,8 @@ async function apiFetch(path, options = {}) {
     try {
       const created = await apiFetch("/api/v1/projects", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+        ...buildAuthHeaders(), "Content-Type": "application/json" },
         body: JSON.stringify(projectForm),
       });
 
@@ -843,6 +874,42 @@ async function apiFetch(path, options = {}) {
 
 
 
+
+
+  async function loginWithPassword(event) {
+    event.preventDefault();
+    setBusy(true);
+    setMessage("Signing in...");
+
+    try {
+      const result = await apiFetch("/api/v1/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(authForm),
+      });
+
+      window.localStorage.setItem(AUTH_TOKEN_STORAGE_KEY, result.access_token);
+      window.localStorage.setItem(AUTH_USER_STORAGE_KEY, JSON.stringify(result.user));
+      setAuthToken(result.access_token);
+      setAuthUser(result.user);
+      setActorName(result.user?.email || "authenticated_user");
+      setMessage(`Signed in as ${result.user?.email || "user"}.`);
+    } catch (err) {
+      setMessage(`Login failed: ${err.message}`);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function logoutUser() {
+    window.localStorage.removeItem(AUTH_TOKEN_STORAGE_KEY);
+    window.localStorage.removeItem(AUTH_USER_STORAGE_KEY);
+    setAuthToken(null);
+    setAuthUser(null);
+    setMessage("Signed out. Dev fallback internal API key remains available.");
+  }
 
   async function updateProposalTemplate(patch) {
     if (!selectedProjectId) {
@@ -1511,6 +1578,16 @@ async function apiFetch(path, options = {}) {
             </div>
           </div>
 
+                    <AuthPanel
+            authUser={authUser}
+            authToken={authToken}
+            authForm={authForm}
+            setAuthForm={setAuthForm}
+            loginWithPassword={loginWithPassword}
+            logoutUser={logoutUser}
+            busy={busy}
+          />
+
           <ProjectViewTabs
             activeProjectView={activeProjectView}
             setActiveProjectView={setActiveProjectView}
@@ -1786,6 +1863,57 @@ function formatWibDateTime(value) {
     timeZone: "Asia/Jakarta",
     hour12: false,
   }).format(date)} WIB`;
+}
+
+
+function AuthPanel({
+  authUser,
+  authToken,
+  authForm,
+  setAuthForm,
+  loginWithPassword,
+  logoutUser,
+  busy,
+}) {
+  return (
+    <div className="authPanel">
+      <div className="authPanelInfo">
+        <span className={authUser ? "authStatus online" : "authStatus dev"}>
+          {authUser ? "Authenticated" : "Dev Fallback"}
+        </span>
+        <div>
+          <strong>{authUser?.full_name || authUser?.email || "Internal API Key Mode"}</strong>
+          <p>{authUser ? `${authUser.email} · ${authUser.role}` : "Login is optional in dev; API key fallback is still enabled."}</p>
+        </div>
+      </div>
+
+      {authUser ? (
+        <button type="button" className="secondaryButton" onClick={logoutUser} disabled={busy}>
+          Logout
+        </button>
+      ) : (
+        <form className="authLoginForm" onSubmit={loginWithPassword}>
+          <input
+            type="email"
+            placeholder="admin@bidready.local"
+            value={authForm.email}
+            onChange={(event) => setAuthForm((current) => ({ ...current, email: event.target.value }))}
+            disabled={busy}
+          />
+          <input
+            type="password"
+            placeholder="Password"
+            value={authForm.password}
+            onChange={(event) => setAuthForm((current) => ({ ...current, password: event.target.value }))}
+            disabled={busy}
+          />
+          <button type="submit" className="primaryButton" disabled={busy || !authForm.email || !authForm.password}>
+            Login
+          </button>
+        </form>
+      )}
+    </div>
+  );
 }
 
 function ProjectViewTabs({ activeProjectView, setActiveProjectView, proposalTemplate = null, clarificationTracker = { summary: null, items: [] }, addendumImpacts = { summary: null, items: [] }, decisionGateHistory = { summary: null, events: [] }, approvalWorkflow = { summary: null, request: null, steps: [] }, complianceScorecard = { summary: null, items: [] }, riskItems = [], actionItems = [] }) {
