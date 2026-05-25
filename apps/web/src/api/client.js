@@ -1,17 +1,17 @@
 import { buildAuthHeaders } from "../utils/auth.js";
 
 export const API_BASE = import.meta.env.VITE_API_BASE || "/api/v1";
+export const INTERNAL_API_KEY = import.meta.env.VITE_INTERNAL_API_KEY || "";
 
 function shouldAttachInternalApiKey(path) {
   return typeof path === "string" && path.startsWith("/api/v1/");
 }
 
 function buildHeaders(path, inputHeaders = {}) {
-  const internalApiKey = import.meta.env.VITE_INTERNAL_API_KEY || "";
   const headers = new Headers(buildAuthHeaders(inputHeaders || {}));
 
-  if (shouldAttachInternalApiKey(path) && internalApiKey) {
-    headers.set("X-Internal-API-Key", internalApiKey);
+  if (shouldAttachInternalApiKey(path) && INTERNAL_API_KEY) {
+    headers.set("X-Internal-API-Key", INTERNAL_API_KEY);
   }
 
   return headers;
@@ -43,7 +43,7 @@ export async function apiFetch(path, options = {}) {
   }
 
   if (!res.ok) {
-    const detail = data?.detail || data || `HTTP ${res.status}`;
+    const detail = data?.detail || data?.message || data || `HTTP ${res.status}`;
     throw new Error(detail);
   }
 
