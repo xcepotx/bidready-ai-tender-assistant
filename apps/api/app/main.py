@@ -19,6 +19,7 @@ from app.models import compliance_scorecard  # noqa: F401
 from app.models import approval_workflow  # noqa: F401
 from app.models import addendum_impact  # noqa: F401
 from app.models import clarification_response_tracker  # noqa: F401
+from app.models import proposal_template  # noqa: F401
 from app.routers.projects import router as projects_router
 from app.routers.requirements import router as requirements_router
 from app.routers.clarifications import router as clarifications_router
@@ -38,6 +39,7 @@ from app.routers.decision_gate_history import router as decision_gate_history_ro
 from app.routers.addendum_impact import router as addendum_impact_router
 from app.routers.clarification_response_tracker import router as clarification_response_tracker_router
 from app.routers.executive_pack import router as executive_pack_router
+from app.routers.proposal_templates import router as proposal_templates_router
 from app.security.internal_key import require_internal_api_key
 
 
@@ -109,3 +111,4 @@ app.include_router(decision_gate_history_router, dependencies=[Depends(require_i
 app.include_router(addendum_impact_router, dependencies=[Depends(require_internal_api_key)])
 app.include_router(clarification_response_tracker_router, dependencies=[Depends(require_internal_api_key)])
 app.include_router(executive_pack_router, dependencies=[Depends(require_internal_api_key)])
+app.include_router(proposal_templates_router, dependencies=[Depends(require_internal_api_key)])

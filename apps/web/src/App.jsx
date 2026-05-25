@@ -25,6 +25,7 @@ function App() {
   const [decisionGateHistory, setDecisionGateHistory] = useState({ summary: null, events: [] });
   const [addendumImpacts, setAddendumImpacts] = useState({ summary: null, items: [] });
   const [clarificationTracker, setClarificationTracker] = useState({ summary: null, items: [] });
+  const [proposalTemplate, setProposalTemplate] = useState(null);
   const [complianceScorecard, setComplianceScorecard] = useState({ summary: null, items: [] });
   const [approvalWorkflow, setApprovalWorkflow] = useState({ summary: null, request: null, steps: [] });
   const [riskItems, setRiskItems] = useState([]);
@@ -156,7 +157,7 @@ async function apiFetch(path, options = {}) {
     if (!projectId) return;
 
     try {
-      const [docs, reqs, qs, responseItems, proposalSections, evidenceItems, gate, gateHistory, addendumImpactData, clarificationTrackerData, approvalData, complianceData, riskItemsData, actionItemsData, language, audits, summary, metadata, brief] = await Promise.all([
+      const [docs, reqs, qs, responseItems, proposalSections, evidenceItems, gate, gateHistory, addendumImpactData, clarificationTrackerData, proposalTemplateData, approvalData, complianceData, riskItemsData, actionItemsData, language, audits, summary, metadata, brief] = await Promise.all([
         apiFetch(`/api/v1/projects/${projectId}/documents`).catch(() => []),
         apiFetch(`/api/v1/projects/${projectId}/requirements`).catch(() => []),
         apiFetch(`/api/v1/projects/${projectId}/clarifications`).catch(() => []),
@@ -167,6 +168,7 @@ async function apiFetch(path, options = {}) {
         apiFetch(`/api/v1/projects/${projectId}/decision-gate-history`).catch(() => ({ summary: null, events: [] })),
         apiFetch(`/api/v1/projects/${projectId}/addendum-impacts`).catch(() => ({ summary: null, items: [] })),
         apiFetch(`/api/v1/projects/${projectId}/clarification-response-tracker`).catch(() => ({ summary: null, items: [] })),
+        apiFetch(`/api/v1/projects/${projectId}/proposal-template`).catch(() => null),
         apiFetch(`/api/v1/projects/${projectId}/approval-workflow`).catch(() => ({ summary: null, request: null, steps: [] })),
         apiFetch(`/api/v1/projects/${projectId}/compliance-scorecard`).catch(() => ({ summary: null, items: [] })),
         apiFetch(`/api/v1/projects/${projectId}/risk-register`).catch(() => []),
@@ -191,6 +193,7 @@ async function apiFetch(path, options = {}) {
       setDecisionGateHistory(gateHistory || { summary: null, events: [] });
       setAddendumImpacts(addendumImpactData || { summary: null, items: [] });
       setClarificationTracker(clarificationTrackerData || { summary: null, items: [] });
+      setProposalTemplate(proposalTemplateData || null);
       setApprovalWorkflow(approvalData || { summary: null, request: null, steps: [] });
       setComplianceScorecard(complianceData || { summary: null, items: [] });
       setRiskItems(riskItemsData || []);
@@ -840,6 +843,35 @@ async function apiFetch(path, options = {}) {
 
 
 
+
+  async function updateProposalTemplate(patch) {
+    if (!selectedProjectId) {
+      setMessage("Select a bid project first.");
+      return;
+    }
+
+    setBusy(true);
+    setMessage("");
+
+    try {
+      const updated = await apiFetch(`/api/v1/projects/${selectedProjectId}/proposal-template`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Actor": actorName,
+        },
+        body: JSON.stringify(patch),
+      });
+
+      setProposalTemplate(updated);
+      setMessage("Proposal template updated.");
+    } catch (err) {
+      setMessage(`Update proposal template failed: ${err.message}`);
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function downloadExecutivePack() {
     if (!selectedProjectId) {
       setMessage("Select a bid project first.");
@@ -1482,6 +1514,7 @@ async function apiFetch(path, options = {}) {
           <ProjectViewTabs
             activeProjectView={activeProjectView}
             setActiveProjectView={setActiveProjectView}
+            proposalTemplate={proposalTemplate}
             clarificationTracker={clarificationTracker}
             addendumImpacts={addendumImpacts}
             decisionGateHistory={decisionGateHistory}
@@ -1650,6 +1683,15 @@ async function apiFetch(path, options = {}) {
             />
           )}
 
+          {activeProjectView === "template" && (
+            <ProposalTemplateView
+              proposalTemplate={proposalTemplate}
+              busy={busy}
+              updateProposalTemplate={updateProposalTemplate}
+              downloadExecutivePack={downloadExecutivePack}
+            />
+          )}
+
           {activeProjectView === "audit" && (
             <AuditLogView auditLogs={auditLogs} />
           )}
@@ -1746,7 +1788,7 @@ function formatWibDateTime(value) {
   }).format(date)} WIB`;
 }
 
-function ProjectViewTabs({ activeProjectView, setActiveProjectView, clarificationTracker = { summary: null, items: [] }, addendumImpacts = { summary: null, items: [] }, decisionGateHistory = { summary: null, events: [] }, approvalWorkflow = { summary: null, request: null, steps: [] }, complianceScorecard = { summary: null, items: [] }, riskItems = [], actionItems = [] }) {
+function ProjectViewTabs({ activeProjectView, setActiveProjectView, proposalTemplate = null, clarificationTracker = { summary: null, items: [] }, addendumImpacts = { summary: null, items: [] }, decisionGateHistory = { summary: null, events: [] }, approvalWorkflow = { summary: null, request: null, steps: [] }, complianceScorecard = { summary: null, items: [] }, riskItems = [], actionItems = [] }) {
   const tabs = [
     { key: "summary", label: "Summary", shortLabel: "Summary", icon: LayoutDashboard },
     { key: "requirements", label: "Requirements", shortLabel: "Reqs", icon: ClipboardCheck },
@@ -1759,6 +1801,7 @@ function ProjectViewTabs({ activeProjectView, setActiveProjectView, clarificatio
     { key: "gateHistory", label: "Gate History", shortLabel: "Gate Hist", icon: History, badge: decisionGateHistory?.summary?.total_events ?? 0 },
     { key: "addendum", label: "Addendum Impact", shortLabel: "Addendum", icon: FileText, badge: addendumImpacts?.summary?.total_items ?? 0 },
     { key: "clarificationTracker", label: "Clarification Tracker", shortLabel: "Clarify", icon: MessageSquare, badge: clarificationTracker?.summary?.open_items ?? 0 },
+    { key: "template", label: "Proposal Template", shortLabel: "Template", icon: FileText, badge: proposalTemplate?.id ? 1 : 0 },
     { key: "risks", label: "Risk Register", shortLabel: "Risks", icon: AlertTriangle, badge: riskItems.length },
     { key: "actions", label: "Action Tracker", shortLabel: "Actions", icon: ClipboardCheck, badge: actionItems.length },
     { key: "audit", label: "Audit Log", shortLabel: "Audit", icon: History },
@@ -4033,6 +4076,285 @@ function ComplianceRelationBox({ title, values = [] }) {
 
 
 
+
+
+function ProposalTemplateView({
+  proposalTemplate,
+  busy,
+  updateProposalTemplate,
+  downloadExecutivePack,
+}) {
+  const template = proposalTemplate || {
+    template_name: "Standard Executive Proposal",
+    executive_title: "",
+    cover_note: "",
+    company_profile: "",
+    win_theme: "",
+    proposal_tone: "formal",
+    section_order: [],
+    excluded_section_keys: [],
+    custom_sections: [],
+    footer_note: "",
+    notes: "",
+  };
+
+  const customSectionsText = JSON.stringify(template.custom_sections || [], null, 2);
+  const sectionOrderText = (template.section_order || []).join(", ");
+  const excludedSectionText = (template.excluded_section_keys || []).join(", ");
+
+  function parseCsv(value) {
+    return value
+      .split(",")
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
+
+  function parseCustomSections(value) {
+    try {
+      const parsed = JSON.parse(value || "[]");
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return template.custom_sections || [];
+    }
+  }
+
+  return (
+    <div className="workspaceView proposalTemplateView">
+      <div className="viewHeader proposalTemplateHeader">
+        <div>
+          <p className="eyebrow">Proposal Template Customization</p>
+          <h2>Customize proposal structure and executive narrative</h2>
+          <p className="muted">
+            Control DOCX proposal title, cover note, company profile, win theme, tone, section order, excluded sections, custom sections, and footer.
+          </p>
+        </div>
+
+        <button
+          type="button"
+          className="executivePackButton"
+          disabled={busy}
+          onClick={downloadExecutivePack}
+        >
+          Export Executive Pack
+        </button>
+      </div>
+
+      <div className="proposalTemplateGrid">
+        <div className="sectionBox proposalTemplatePanel">
+          <h3>Template Identity</h3>
+
+          <label>
+            Template Name
+            <input
+              className="tableInput"
+              defaultValue={template.template_name || ""}
+              disabled={busy}
+              onBlur={(e) => {
+                if (e.target.value !== (template.template_name || "")) {
+                  updateProposalTemplate({ template_name: e.target.value });
+                }
+              }}
+            />
+          </label>
+
+          <label>
+            Executive Title
+            <input
+              className="tableInput"
+              defaultValue={template.executive_title || ""}
+              disabled={busy}
+              onBlur={(e) => {
+                if (e.target.value !== (template.executive_title || "")) {
+                  updateProposalTemplate({ executive_title: e.target.value });
+                }
+              }}
+            />
+          </label>
+
+          <label>
+            Proposal Tone
+            <select
+              value={template.proposal_tone || "formal"}
+              disabled={busy}
+              onChange={(e) => updateProposalTemplate({ proposal_tone: e.target.value })}
+            >
+              <option value="formal">Formal</option>
+              <option value="concise">Concise</option>
+              <option value="technical">Technical</option>
+              <option value="executive">Executive</option>
+            </select>
+          </label>
+
+          <label>
+            Footer Note
+            <textarea
+              className="tableTextarea"
+              defaultValue={template.footer_note || ""}
+              disabled={busy}
+              onBlur={(e) => {
+                if (e.target.value !== (template.footer_note || "")) {
+                  updateProposalTemplate({ footer_note: e.target.value });
+                }
+              }}
+            />
+          </label>
+        </div>
+
+        <div className="sectionBox proposalTemplatePanel">
+          <h3>Executive Narrative</h3>
+
+          <label>
+            Cover Note
+            <textarea
+              className="tableTextarea"
+              defaultValue={template.cover_note || ""}
+              disabled={busy}
+              onBlur={(e) => {
+                if (e.target.value !== (template.cover_note || "")) {
+                  updateProposalTemplate({ cover_note: e.target.value });
+                }
+              }}
+            />
+          </label>
+
+          <label>
+            Company Profile
+            <textarea
+              className="tableTextarea"
+              defaultValue={template.company_profile || ""}
+              disabled={busy}
+              onBlur={(e) => {
+                if (e.target.value !== (template.company_profile || "")) {
+                  updateProposalTemplate({ company_profile: e.target.value });
+                }
+              }}
+            />
+          </label>
+
+          <label>
+            Win Theme
+            <textarea
+              className="tableTextarea"
+              defaultValue={template.win_theme || ""}
+              disabled={busy}
+              onBlur={(e) => {
+                if (e.target.value !== (template.win_theme || "")) {
+                  updateProposalTemplate({ win_theme: e.target.value });
+                }
+              }}
+            />
+          </label>
+        </div>
+      </div>
+
+      <div className="proposalTemplateGrid">
+        <div className="sectionBox proposalTemplatePanel">
+          <h3>Section Controls</h3>
+          <p className="muted">
+            Use proposal section keys separated by comma. Empty value keeps generated order.
+          </p>
+
+          <label>
+            Section Order
+            <input
+              className="tableInput"
+              defaultValue={sectionOrderText}
+              disabled={busy}
+              placeholder="executive_summary, scope, solution, timeline"
+              onBlur={(e) => {
+                if (e.target.value !== sectionOrderText) {
+                  updateProposalTemplate({ section_order: parseCsv(e.target.value) });
+                }
+              }}
+            />
+          </label>
+
+          <label>
+            Excluded Section Keys
+            <input
+              className="tableInput"
+              defaultValue={excludedSectionText}
+              disabled={busy}
+              placeholder="pricing, appendix"
+              onBlur={(e) => {
+                if (e.target.value !== excludedSectionText) {
+                  updateProposalTemplate({ excluded_section_keys: parseCsv(e.target.value) });
+                }
+              }}
+            />
+          </label>
+
+          <label>
+            Internal Notes
+            <textarea
+              className="tableTextarea"
+              defaultValue={template.notes || ""}
+              disabled={busy}
+              onBlur={(e) => {
+                if (e.target.value !== (template.notes || "")) {
+                  updateProposalTemplate({ notes: e.target.value });
+                }
+              }}
+            />
+          </label>
+        </div>
+
+        <div className="sectionBox proposalTemplatePanel">
+          <h3>Custom Sections JSON</h3>
+          <p className="muted">
+            Example: [{`{"title":"Why Us","content":"Our differentiator..."}`}]
+          </p>
+
+          <textarea
+            className="tableTextarea customSectionsTextarea"
+            defaultValue={customSectionsText}
+            disabled={busy}
+            onBlur={(e) => {
+              if (e.target.value !== customSectionsText) {
+                updateProposalTemplate({ custom_sections: parseCustomSections(e.target.value) });
+              }
+            }}
+          />
+
+          <div className="actionQuickControls">
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() =>
+                updateProposalTemplate({
+                  custom_sections: [
+                    ...(template.custom_sections || []),
+                    {
+                      title: "Why We Win",
+                      content: "Add tailored differentiators, proof points, and executive value here.",
+                    },
+                  ],
+                })
+              }
+            >
+              Add Sample Section
+            </button>
+
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() =>
+                updateProposalTemplate({
+                  executive_title: "Executive Proposal",
+                  proposal_tone: "executive",
+                  cover_note: "This proposal is tailored to the client priorities, requirements, and risk posture.",
+                  win_theme: "We combine compliance, delivery confidence, and measurable business value.",
+                })
+              }
+            >
+              Apply Executive Preset
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function ClarificationResponseTrackerView({
   clarificationTracker = { summary: null, items: [] },

@@ -335,6 +335,81 @@ assert_jq "$TMP_DIR/audit_logs.json" \
   'any(.[]; .action == "generate_response_plan") and any(.[]; .action == "generate_proposal_outline") and any(.[]; .action == "generate_decision_gate") and any(.[]; .action == "generate_compliance_scorecard") and any(.[]; .action == "generate_risk_register") and any(.[]; .action == "generate_approval_workflow") and any(.[]; .action == "generate_addendum_impact_analysis") and any(.[]; .action == "generate_clarification_response_tracker")' \
   "Audit logs contain generated artifact actions"
 
+log "Validate Proposal Template Customization"
+TEMPLATE_MARKER="BidReady Custom Executive Proposal Smoke"
+TEMPLATE_PAYLOAD="$TMP_DIR/proposal_template_payload.json"
+
+cat > "$TEMPLATE_PAYLOAD" <<JSON
+{
+  "template_name": "Executive Custom Template",
+  "executive_title": "${TEMPLATE_MARKER}",
+  "cover_note": "Cover note from template customization smoke test.",
+  "company_profile": "Company profile from template customization smoke test.",
+  "win_theme": "Win theme from template customization smoke test.",
+  "proposal_tone": "executive",
+  "custom_sections": [
+    {
+      "title": "Custom Differentiator Section",
+      "content": "This custom section is inserted by the proposal template."
+    }
+  ],
+  "footer_note": "Footer note from proposal template customization."
+}
+JSON
+
+echo "Proposal template payload:"
+cat "$TEMPLATE_PAYLOAD"
+
+curl -fsS -X PATCH "$API_BASE/api/v1/projects/${PROJECT_ID}/proposal-template" \
+  -H "X-Internal-API-Key: $KEY" \
+  -H "X-Actor: smoke_test" \
+  -H "Content-Type: application/json" \
+  --data-binary @"$TEMPLATE_PAYLOAD" \
+  > "$TMP_DIR/proposal_template_update.json"
+
+assert_jq "$TMP_DIR/proposal_template_update.json" '.executive_title == "BidReady Custom Executive Proposal Smoke" and .proposal_tone == "executive"' "Proposal Template update works"
+
+api_get "/api/v1/projects/${PROJECT_ID}/proposal-template" > "$TMP_DIR/proposal_template.json"
+assert_jq "$TMP_DIR/proposal_template.json" '.template_name == "Executive Custom Template" and (.custom_sections | length) == 1' "Proposal Template read works"
+
+TEMPLATE_DOCX="$TMP_DIR/bidready_template_customized_${PROJECT_ID}.docx"
+curl -fsS -L \
+  -H "X-Internal-API-Key: $KEY" \
+  "$API_BASE/api/v1/projects/${PROJECT_ID}/exports/proposal-draft.docx" \
+  -o "$TEMPLATE_DOCX"
+
+python3 - "$TEMPLATE_DOCX" "$TEMPLATE_MARKER" <<'PYDOCX'
+import re
+import sys
+from pathlib import Path
+from zipfile import ZipFile
+
+path = Path(sys.argv[1])
+marker = sys.argv[2]
+
+with ZipFile(path) as zf:
+    xml = zf.read("word/document.xml").decode("utf-8", errors="ignore")
+
+text = re.sub(r"<[^>]+>", " ", xml)
+text = re.sub(r"\s+", " ", text)
+
+required = [
+    marker,
+    "Cover note from template customization smoke test.",
+    "Company profile from template customization smoke test.",
+    "Win theme from template customization smoke test.",
+    "Custom Differentiator Section",
+    "This custom section is inserted by the proposal template.",
+    "Footer note from proposal template customization.",
+]
+
+missing = [item for item in required if item not in text]
+if missing:
+    raise SystemExit(f"Missing template text in DOCX: {missing}")
+PYDOCX
+
+pass "Proposal Template DOCX content validated"
+
 log "Export Executive Pack"
 EXEC_PACK="$TMP_DIR/bidready_ai_executive_pack_project_${PROJECT_ID}.zip"
 curl -fsS -L \

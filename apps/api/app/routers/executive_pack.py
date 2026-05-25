@@ -12,6 +12,7 @@ from app.models.clarification import TenderClarificationQuestion
 from app.models.project_metadata import TenderProjectMetadata
 from app.models.response_plan import TenderResponseItem
 from app.models.proposal_outline import TenderProposalSection
+from app.models.proposal_template import TenderProposalTemplate
 from app.models.evidence_pack import TenderEvidenceItem
 from app.models.decision_gate import TenderDecisionGate
 from app.models.approval_workflow import TenderApprovalRequest, TenderApprovalStep
@@ -47,6 +48,7 @@ def export_project_executive_pack(project_id: int, db: Session = Depends(get_db)
     evidence_items = db.query(TenderEvidenceItem).filter(TenderEvidenceItem.project_id == project_id).order_by(TenderEvidenceItem.priority.desc(), TenderEvidenceItem.id.asc()).all()
 
     metadata = db.query(TenderProjectMetadata).filter(TenderProjectMetadata.project_id == project_id).order_by(TenderProjectMetadata.id.desc()).first()
+    proposal_template = db.query(TenderProposalTemplate).filter(TenderProposalTemplate.project_id == project_id).first()
     decision_gate = db.query(TenderDecisionGate).filter(TenderDecisionGate.project_id == project_id).order_by(TenderDecisionGate.id.desc()).first()
 
     approval_request = db.query(TenderApprovalRequest).filter(TenderApprovalRequest.project_id == project_id).order_by(TenderApprovalRequest.id.desc()).first()
@@ -114,6 +116,7 @@ def export_project_executive_pack(project_id: int, db: Session = Depends(get_db)
         audit_logs=audit_logs,
         output_dir=str(export_dir),
         output_language=output_language,
+        proposal_template=proposal_template,
     )
 
     return FileResponse(

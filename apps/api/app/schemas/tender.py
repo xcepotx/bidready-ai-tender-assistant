@@ -811,3 +811,37 @@ class ClarificationResponseTrackerResponse(BaseModel):
 class ClarificationResponseGenerateResponse(ClarificationResponseTrackerResponse):
     generated_count: int
 
+class ProposalTemplateResponse(BaseModel):
+    id: int | None
+    project_id: int
+    template_name: str
+    executive_title: str | None
+    cover_note: str | None
+    company_profile: str | None
+    win_theme: str | None
+    proposal_tone: str
+    section_order: list
+    excluded_section_keys: list
+    custom_sections: list
+    footer_note: str | None
+    notes: str | None
+    created_at: datetime | None
+    updated_at: datetime | None
+
+    class Config:
+        from_attributes = True
+
+
+class ProposalTemplateUpdate(BaseModel):
+    template_name: str | None = None
+    executive_title: str | None = None
+    cover_note: str | None = None
+    company_profile: str | None = None
+    win_theme: str | None = None
+    proposal_tone: str | None = None
+    section_order: list | None = None
+    excluded_section_keys: list | None = None
+    custom_sections: list | None = None
+    footer_note: str | None = None
+    notes: str | None = None
+

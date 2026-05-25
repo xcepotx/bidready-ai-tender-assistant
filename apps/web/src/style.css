@@ -4963,3 +4963,49 @@ button:hover {
   cursor: not-allowed;
   box-shadow: none;
 }
+
+
+/* ===== Proposal Template Customization ===== */
+
+.proposalTemplateView .proposalTemplateHeader {
+  background:
+    radial-gradient(circle at top right, rgba(79, 70, 229, 0.13), transparent 34%),
+    #ffffff;
+}
+
+.proposalTemplateGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.proposalTemplatePanel {
+  display: grid;
+  gap: 12px;
+}
+
+.proposalTemplatePanel label {
+  display: grid;
+  gap: 6px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: #64748b;
+}
+
+.proposalTemplatePanel .tableTextarea {
+  min-height: 110px;
+}
+
+.proposalTemplatePanel .customSectionsTextarea {
+  min-height: 260px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  font-size: 12px;
+}
+
+@media (max-width: 900px) {
+  .proposalTemplateGrid {
+    grid-template-columns: 1fr;
+  }
+}

@@ -259,6 +259,7 @@ def export_executive_pack(
     audit_logs,
     output_dir: str,
     output_language: str = "en",
+    proposal_template=None,
 ) -> str:
     output_root = Path(output_dir)
     output_root.mkdir(parents=True, exist_ok=True)
@@ -305,6 +306,7 @@ def export_executive_pack(
         decision_gate=decision_gate,
         output_path=str(docx_path),
         output_language=output_language,
+        proposal_template=proposal_template,
     )
 
     executive_payload = build_executive_summary_payload(

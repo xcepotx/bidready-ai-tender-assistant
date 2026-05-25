@@ -73,6 +73,55 @@ def _add_field_table(doc, rows):
     doc.add_paragraph()
 
 
+
+
+def _template_value(template, field, default=None):
+    if not template:
+        return default
+    value = getattr(template, field, None)
+    return value if value not in (None, "") else default
+
+
+def _ordered_sections(proposal_sections, template):
+    sections = list(proposal_sections or [])
+    excluded = set(_template_value(template, "excluded_section_keys", []) or [])
+    order = _template_value(template, "section_order", []) or []
+
+    if excluded:
+        sections = [section for section in sections if section.section_key not in excluded]
+
+    if order:
+        order_index = {key: idx for idx, key in enumerate(order)}
+        sections.sort(key=lambda section: (order_index.get(section.section_key, 999), section.section_order, section.id))
+
+    return sections
+
+
+def _add_template_block(doc, title, content):
+    if not content:
+        return
+    _add_heading(doc, title, level=2)
+    for paragraph in str(content).splitlines():
+        if paragraph.strip():
+            doc.add_paragraph(paragraph.strip())
+
+
+def _add_custom_sections(doc, custom_sections):
+    for index, section in enumerate(custom_sections or [], start=1):
+        if not isinstance(section, dict):
+            continue
+
+        title = section.get("title") or section.get("section_title") or f"Custom Section {index}"
+        content = section.get("content") or section.get("draft_content") or section.get("body") or ""
+        if not title and not content:
+            continue
+
+        _add_heading(doc, str(title), level=1)
+        for paragraph in str(content).splitlines():
+            if paragraph.strip():
+                doc.add_paragraph(paragraph.strip())
+        doc.add_page_break()
+
 def _join_list(items):
     if not items:
         return "-"
@@ -89,6 +138,7 @@ def export_proposal_draft_docx(
     evidence_items=None,
     decision_gate=None,
     output_language: str = "en",
+    proposal_template=None,
 ) -> str:
     evidence_items = evidence_items or []
     L = lambda label: localized_label(label, output_language)
@@ -107,14 +157,28 @@ def export_proposal_draft_docx(
     styles["Normal"].font.name = "Arial"
     styles["Normal"].font.size = Pt(10)
 
+    template_name = _template_value(proposal_template, "template_name", "Standard Executive Proposal")
+    executive_title = _template_value(proposal_template, "executive_title", "BidReady AI - Proposal Draft")
+    cover_note = _template_value(proposal_template, "cover_note")
+    company_profile = _template_value(proposal_template, "company_profile")
+    win_theme = _template_value(proposal_template, "win_theme")
+    proposal_tone = _template_value(proposal_template, "proposal_tone", "formal")
+    custom_sections = _template_value(proposal_template, "custom_sections", []) or []
+    footer_note = _template_value(proposal_template, "footer_note")
+
     package_name = metadata.package_name if metadata else project.title
     issuer = metadata.issuer if metadata and metadata.issuer else project.issuer
     service_domain = metadata.service_domain if metadata and metadata.service_domain else project.tender_type
 
-    _add_title(doc, "BidReady AI - Proposal Draft")
+    _add_title(doc, executive_title)
     _add_subtitle(doc, "Tender Intelligence Platform")
     _add_subtitle(doc, "Generated from proposal outline, response plan, evidence checklist, and RFP metadata.")
     doc.add_paragraph()
+    _add_template_block(doc, "Cover Note", cover_note)
+    _add_template_block(doc, "Company Profile", company_profile)
+    _add_template_block(doc, "Win Theme", win_theme)
+    if cover_note or company_profile or win_theme:
+        doc.add_paragraph()
 
     _add_heading(doc, L("Tender Metadata"), level=1)
     _add_field_table(doc, [
@@ -176,7 +240,9 @@ def export_proposal_draft_docx(
 
     _add_heading(doc, L("Proposal Sections"), level=1)
 
-    for section_item in proposal_sections:
+    ordered_sections = _ordered_sections(proposal_sections, proposal_template)
+
+    for section_item in ordered_sections:
         _add_heading(doc, f"{section_item.section_order}. {section_item.title}", level=1)
 
         _add_field_table(doc, [
@@ -216,6 +282,9 @@ def export_proposal_draft_docx(
             doc.add_paragraph(section_item.notes)
 
         doc.add_page_break()
+
+    # Proposal template custom sections.
+    _add_custom_sections(doc, custom_sections)
 
     _add_heading(doc, L("Response Plan Appendix"), level=1)
 
@@ -287,6 +356,10 @@ def export_proposal_draft_docx(
                 cells[0].text = evidence
                 cells[1].text = ", ".join(sorted(owners))
                 cells[2].text = "open"
+
+    if footer_note:
+        _add_heading(doc, "Template Footer Note", level=2)
+        doc.add_paragraph(str(footer_note))
 
     doc.save(output)
     return str(output)

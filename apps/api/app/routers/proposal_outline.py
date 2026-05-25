@@ -12,6 +12,7 @@ from app.models.proposal_outline import TenderProposalSection
 from app.models.evidence_pack import TenderEvidenceItem
 from app.models.decision_gate import TenderDecisionGate
 from app.models.project_metadata import TenderProjectMetadata
+from app.models.proposal_template import TenderProposalTemplate
 from app.schemas.tender import (
     GenerateProposalOutlineResponse,
     ProposalSectionResponse,
@@ -221,6 +222,12 @@ def export_project_proposal_draft_docx(project_id: int, db: Session = Depends(ge
         .all()
     )
 
+    proposal_template = (
+        db.query(TenderProposalTemplate)
+        .filter(TenderProposalTemplate.project_id == project_id)
+        .first()
+    )
+
     output_language = get_project_output_language(db, project_id)
 
     export_dir = Path(settings.export_dir) / f"project_{project_id}"
@@ -235,6 +242,7 @@ def export_project_proposal_draft_docx(project_id: int, db: Session = Depends(ge
         evidence_items=evidence_items,
         decision_gate=decision_gate,
         output_language=output_language,
+        proposal_template=proposal_template,
     )
 
     return FileResponse(
