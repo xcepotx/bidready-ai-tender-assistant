@@ -9,6 +9,7 @@ import ActionStat from "./components/ActionStat.jsx";
 import ExecutiveMetric from "./components/ExecutiveMetric.jsx";
 import ExecutiveStage from "./components/ExecutiveStage.jsx";
 import EvidenceStat from "./components/EvidenceStat.jsx";
+import RiskStat from "./components/RiskStat.jsx";
 function L(en, id) {
   return en || id || "";
 }
@@ -3601,17 +3602,6 @@ function RelationBox({ title, values }) {
     </div>
   );
 }
-
-
-function RiskStat({ label, value, tone = "" }) {
-  return (
-    <div className={`actionStat ${tone}`}>
-      <strong>{value}</strong>
-      <span>{label}</span>
-    </div>
-  );
-}
-
 
 function ComplianceMetric({ label, value, tone = "" }) {
   return (
