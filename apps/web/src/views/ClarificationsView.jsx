@@ -1,4 +1,7 @@
 import { useState } from "react";
+function L(en, id) {
+  return en || id || "";
+}
 
 function ClarificationsView({
   clarifications,
@@ -250,6 +253,103 @@ function ClarificationsView({
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+function ClarificationDetail({ q, busy, updateClarification }) {
+  return (
+    <div className="detailContent">
+      <div className="detailTitleRow">
+        <div>
+          <p className="eyebrow dark">Clarification #{q.id}</p>
+          <h2>{q.question_text}</h2>
+        </div>
+        <span className={`riskBadge ${q.risk_level}`}>{q.risk_level}</span>
+      </div>
+
+      <div className="detailMeta">
+        <span>Category: {q.category}</span>
+        <span>Priority: {q.priority}</span>
+        <span>Source page: {q.source_page || "-"}</span>
+        <span>Status: {q.status}</span>
+      </div>
+
+      {q.reason && (
+        <div className="evidenceBox">
+          <strong>Reason</strong>
+          <p>{q.reason}</p>
+        </div>
+      )}
+
+      <div className="detailGrid">
+        <label>
+          Priority
+          <select
+            value={q.priority || "medium"}
+            disabled={busy}
+            onChange={(e) => updateClarification(q.id, { priority: e.target.value })}
+          >
+            <option value="low">low</option>
+            <option value="medium">medium</option>
+            <option value="high">high</option>
+          </select>
+        </label>
+
+        <label>
+          Risk Level
+          <select
+            value={q.risk_level || "medium"}
+            disabled={busy}
+            onChange={(e) => updateClarification(q.id, { risk_level: e.target.value })}
+          >
+            <option value="low">low</option>
+            <option value="medium">medium</option>
+            <option value="high">high</option>
+          </select>
+        </label>
+
+        <label>
+          Owner
+          <input
+            defaultValue={q.owner || ""}
+            disabled={busy}
+            onBlur={(e) => {
+              if (e.target.value !== (q.owner || "")) {
+                updateClarification(q.id, { owner: e.target.value });
+              }
+            }}
+          />
+        </label>
+
+        <label>
+          Status
+          <select
+            value={q.status || "open"}
+            disabled={busy}
+            onChange={(e) => updateClarification(q.id, { status: e.target.value })}
+          >
+            <option value="open">open</option>
+            <option value="needs_internal_review">needs_internal_review</option>
+            <option value="answered">answered</option>
+            <option value="closed">closed</option>
+            <option value="cancelled">cancelled</option>
+          </select>
+        </label>
+      </div>
+
+      <label className="fullField">
+        Notes
+        <textarea
+          defaultValue={q.notes || ""}
+          disabled={busy}
+          onBlur={(e) => {
+            if (e.target.value !== (q.notes || "")) {
+              updateClarification(q.id, { notes: e.target.value });
+            }
+          }}
+        />
+      </label>
     </div>
   );
 }

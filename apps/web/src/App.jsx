@@ -1714,6 +1714,7 @@ async function apiFetch(path, options = {}) {
 
           {activeProjectView === "requirements" && (
             <RequirementsView
+                uiLanguage={languageSetting?.output_language || languageSetting?.outputLanguage || languageSetting?.output || "en"}
               requirements={requirements}
               selectedRequirement={selectedRequirement}
               setSelectedRequirementId={setSelectedRequirementId}
