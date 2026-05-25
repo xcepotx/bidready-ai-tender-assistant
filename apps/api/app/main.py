@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+import os
 
 from fastapi import Depends, FastAPI
 from pydantic import BaseModel
@@ -55,9 +56,14 @@ class HealthResponse(BaseModel):
     timestamp: str
 
 
+def auto_create_tables_enabled() -> bool:
+    return os.getenv("BIDREADY_AUTO_CREATE_TABLES", "true").lower() in {"1", "true", "yes", "on"}
+
+
 @app.on_event("startup")
 def startup():
-    Base.metadata.create_all(bind=engine)
+    if auto_create_tables_enabled():
+        Base.metadata.create_all(bind=engine)
 
 
 def health_payload():
