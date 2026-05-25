@@ -14,6 +14,7 @@ import ComplianceMetric from "./components/ComplianceMetric.jsx";
 import ComplianceRelationBox from "./components/ComplianceRelationBox.jsx";
 import DecisionList from "./components/DecisionList.jsx";
 import MetadataField from "./components/MetadataField.jsx";
+import BriefList from "./components/BriefList.jsx";
 function L(en, id) {
   return en || id || "";
 }
@@ -2530,23 +2531,6 @@ function BidBriefCard({ bidBrief }) {
         <BriefList title="Next Actions" items={bidBrief.next_actions || []} />
         <BriefList title="Assumptions" items={bidBrief.assumptions || []} />
       </div>
-    </div>
-  );
-}
-
-function BriefList({ title, items }) {
-  return (
-    <div className="briefList">
-      <h3>{title}</h3>
-      {items.length === 0 ? (
-        <p className="muted">No item available.</p>
-      ) : (
-        <ul>
-          {items.map((item, index) => (
-            <li key={`${title}-${index}`}>{item}</li>
-          ))}
-        </ul>
-      )}
     </div>
   );
 }
