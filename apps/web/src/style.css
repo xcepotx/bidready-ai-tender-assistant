@@ -5201,3 +5201,278 @@ button:hover {
     width: 100%;
   }
 }
+
+/* ===== Grouped Project Tabs ===== */
+
+.groupedProjectTabs {
+  background: #f8fafc;
+  border: 1px solid #dbe4ee;
+  border-radius: 18px;
+  padding: 12px;
+  margin: 12px 0 18px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72);
+}
+
+.tabGroupSelector {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.tabGroupButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #334155;
+  border-radius: 999px;
+  padding: 8px 12px;
+  font-weight: 900;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.tabGroupButton:hover {
+  border-color: #94a3b8;
+  transform: translateY(-1px);
+}
+
+.tabGroupButton.active {
+  background: #0f172a;
+  color: #ffffff;
+  border-color: #0f172a;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.18);
+}
+
+.tabGroupButton strong {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: #e2e8f0;
+  color: #0f172a;
+  font-size: 11px;
+}
+
+.tabGroupButton.active strong {
+  background: rgba(255, 255, 255, 0.18);
+  color: #ffffff;
+}
+
+.tabGroupMeta {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 10px;
+  padding: 0 2px;
+}
+
+.tabGroupMeta strong {
+  color: #0f172a;
+  font-size: 13px;
+}
+
+.tabGroupMeta span {
+  color: #64748b;
+  font-size: 13px;
+}
+
+.groupedTabsRow {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 8px !important;
+  overflow: visible !important;
+  padding: 0 !important;
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+.groupedTabsRow .projectTab {
+  min-width: auto !important;
+  flex: 0 0 auto;
+  padding: 9px 12px !important;
+  border-radius: 13px !important;
+  font-size: 12px !important;
+  white-space: nowrap;
+}
+
+.groupedTabsRow .projectTab.active {
+  background: #0f172a;
+  color: #ffffff;
+  box-shadow: 0 12px 26px rgba(15, 23, 42, 0.2);
+}
+
+.groupedTabsRow .tabBadge {
+  margin-left: 6px;
+}
+
+@media (max-width: 760px) {
+  .tabGroupSelector,
+  .groupedTabsRow {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .tabGroupButton,
+  .groupedTabsRow .projectTab {
+    justify-content: center;
+    width: 100%;
+  }
+
+  .tabGroupMeta {
+    display: block;
+  }
+
+  .tabGroupMeta span {
+    display: block;
+    margin-top: 3px;
+  }
+}
+
+/* ===== Fix Requirements / Review Split Layout ===== */
+
+.reviewWorkspace,
+.reviewLayout,
+.requirementsWorkspace,
+.requirementsLayout,
+.requirementsView .reviewBody,
+.workspaceView .reviewBody {
+  display: grid !important;
+  grid-template-columns: minmax(360px, 430px) minmax(0, 1fr) !important;
+  gap: 18px !important;
+  align-items: start !important;
+}
+
+.reviewList,
+.requirementList,
+.requirementsList,
+.reviewListPanel,
+.requirementsListPanel,
+.listPanel {
+  min-width: 0 !important;
+  width: 100% !important;
+}
+
+.reviewList button,
+.requirementList button,
+.requirementsList button,
+.reviewItem,
+.requirementItem {
+  width: 100% !important;
+  min-width: 0 !important;
+  display: block !important;
+  text-align: left !important;
+}
+
+.reviewItemTop {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  margin-bottom: 8px !important;
+}
+
+.detailPanel {
+  min-width: 0 !important;
+  width: 100% !important;
+}
+
+.requirementsView .detailPanel,
+.workspaceView .detailPanel {
+  overflow: hidden;
+}
+
+@media (max-width: 1100px) {
+  .reviewWorkspace,
+  .reviewLayout,
+  .requirementsWorkspace,
+  .requirementsLayout,
+  .requirementsView .reviewBody,
+  .workspaceView .reviewBody {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* ===== Requirements View Restore / Strong Layout ===== */
+
+.requirementsView .reviewWorkbench {
+  display: grid !important;
+  grid-template-columns: minmax(380px, 460px) minmax(0, 1fr) !important;
+  gap: 18px !important;
+  align-items: start !important;
+}
+
+.requirementsView .reviewList {
+  display: grid !important;
+  gap: 10px !important;
+  max-height: calc(100vh - 330px);
+  overflow: auto;
+  padding-right: 8px;
+}
+
+.requirementsView .reviewItemWrap {
+  display: grid !important;
+  grid-template-columns: 34px minmax(0, 1fr) !important;
+  gap: 8px !important;
+  align-items: stretch !important;
+  width: 100% !important;
+}
+
+.requirementsView .rowCheck {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-height: 92px;
+  border-radius: 16px;
+  background: #f8fafc;
+  border: 1px solid #dbe4ee;
+}
+
+.requirementsView .reviewItem {
+  display: block !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  text-align: left !important;
+  border: 1px solid #dbe4ee;
+  background: #ffffff;
+  border-radius: 18px;
+  padding: 14px !important;
+  cursor: pointer;
+}
+
+.requirementsView .reviewItem.active,
+.requirementsView .reviewItemWrap.active .reviewItem {
+  border-color: #0f172a;
+  box-shadow: 0 16px 34px rgba(15, 23, 42, 0.14);
+}
+
+.requirementsView .reviewItem strong {
+  display: block;
+  margin: 8px 0;
+  color: #0f172a;
+  line-height: 1.35;
+}
+
+.requirementsView .reviewItem small {
+  color: #64748b;
+}
+
+.requirementsView .detailPanel {
+  min-width: 0 !important;
+  width: 100% !important;
+}
+
+@media (max-width: 1100px) {
+  .requirementsView .reviewWorkbench {
+    grid-template-columns: 1fr !important;
+  }
+
+  .requirementsView .reviewList {
+    max-height: none;
+  }
+}

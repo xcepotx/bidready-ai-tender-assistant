@@ -1,7 +1,81 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
-import { AlertTriangle, ClipboardCheck, FileQuestion, FileText, History, LayoutDashboard, Plus, RefreshCw, Upload, ShieldCheck, CheckCircle2 } from "lucide-react";
+import { AlertTriangle, CheckCircle2, ClipboardCheck, FileQuestion, FileText, History, LayoutDashboard, MessageSquare, Plus, RefreshCw, ShieldCheck, Upload } from "lucide-react";
 import "./style.css";
+function L(en, id) {
+  return en || id || "";
+}
+
+
+function translateRequirementTextForUi(text, uiLanguage = "en") {
+  if (!String(uiLanguage || "").toLowerCase().startsWith("id")) {
+    return text || "";
+  }
+
+  let output = String(text || "");
+
+  const direct = [
+    ["Vendor shall provide application maintenance and support for existing enterprise", "Vendor harus menyediakan maintenance dan support aplikasi untuk enterprise yang sudah berjalan"],
+    ["Vendor shall provide cloud infrastructure operation for production and non-", "Vendor harus menyediakan operasi infrastruktur cloud untuk production dan non-production"],
+    ["Cloud engineers should hold relevant cloud certifications.", "Cloud engineer sebaiknya memiliki sertifikasi cloud yang relevan."],
+    ["Payment shall be milestone-based.", "Pembayaran harus berbasis milestone."],
+    ["Proposal must include executive summary, solution approach, delivery model, and", "Proposal harus mencakup ringkasan eksekutif, pendekatan solusi, model delivery, dan"],
+    ["Data must be encrypted in transit and at rest.", "Data harus dienkripsi saat transit dan saat tersimpan."],
+    ["Production data must remain within approved data", "Data production harus tetap berada dalam data center/lokasi yang disetujui"],
+    ["Vendor must submit the proposal by 30 June 2026 at 15:00 local time.", "Vendor harus mengirimkan proposal paling lambat 30 Juni 2026 pukul 15:00 waktu setempat."],
+    ["Vendor must provide at least 3 similar enterprise references.", "Vendor harus menyediakan minimal 3 referensi enterprise serupa."],
+    ["Proposal validity period must be at least 90 days.", "Masa berlaku proposal harus minimal 90 hari."],
+    ["Support must be available 24x7 for severity 1 incidents.", "Support harus tersedia 24x7 untuk insiden severity 1."],
+    ["Vendor must provide monthly service reports.", "Vendor harus menyediakan laporan layanan bulanan."],
+    ["Vendor must comply with ISO 27001 or equivalent standard.", "Vendor harus mematuhi ISO 27001 atau standar yang setara."],
+    ["Vendor must provide project transition plan.", "Vendor harus menyediakan rencana transisi proyek."],
+    ["Vendor must provide disaster recovery and backup procedure.", "Vendor harus menyediakan prosedur disaster recovery dan backup."],
+    ["Vendor must ensure data privacy and confidentiality.", "Vendor harus memastikan privasi dan kerahasiaan data."],
+  ];
+
+  for (const [en, id] of direct) {
+    output = output.replace(en, id);
+  }
+
+  const phrases = [
+    ["Vendor shall", "Vendor harus"],
+    ["Vendor must", "Vendor harus"],
+    ["Vendor should", "Vendor sebaiknya"],
+    ["must provide", "harus menyediakan"],
+    ["shall provide", "harus menyediakan"],
+    ["should provide", "sebaiknya menyediakan"],
+    ["must include", "harus mencakup"],
+    ["should hold", "sebaiknya memiliki"],
+    ["must comply with", "harus mematuhi"],
+    ["must ensure", "harus memastikan"],
+    ["must submit", "harus mengirimkan"],
+    ["application maintenance and support", "maintenance dan support aplikasi"],
+    ["cloud infrastructure operation", "operasi infrastruktur cloud"],
+    ["existing enterprise", "enterprise yang sudah berjalan"],
+    ["production and non-production", "production dan non-production"],
+    ["relevant cloud certifications", "sertifikasi cloud yang relevan"],
+    ["milestone-based", "berbasis milestone"],
+    ["executive summary", "ringkasan eksekutif"],
+    ["solution approach", "pendekatan solusi"],
+    ["delivery model", "model delivery"],
+    ["encrypted in transit and at rest", "dienkripsi saat transit dan saat tersimpan"],
+    ["similar enterprise references", "referensi enterprise serupa"],
+    ["proposal validity period", "masa berlaku proposal"],
+    ["local time", "waktu setempat"],
+    ["monthly service reports", "laporan layanan bulanan"],
+    ["project transition plan", "rencana transisi proyek"],
+    ["disaster recovery", "disaster recovery"],
+    ["backup procedure", "prosedur backup"],
+    ["data privacy and confidentiality", "privasi dan kerahasiaan data"],
+  ];
+
+  for (const [en, id] of phrases) {
+    output = output.replaceAll(en, id);
+  }
+
+  return output;
+}
+
 
 const emptyProjectForm = {
   title: "",
@@ -107,12 +181,12 @@ async function downloadApiFile(path, filename) {
 
 
 function getStoredAuthToken() {
-  return window.localStorage.getItem(AUTH_TOKEN_STORAGE_KEY);
+  return window.localStorage.getItem("bidreadyAuthToken");
 }
 
 function getStoredAuthUser() {
   try {
-    const raw = window.localStorage.getItem(AUTH_USER_STORAGE_KEY);
+    const raw = window.localStorage.getItem("bidreadyAuthUser");
     return raw ? JSON.parse(raw) : null;
   } catch {
     return null;
@@ -890,8 +964,8 @@ async function apiFetch(path, options = {}) {
         body: JSON.stringify(authForm),
       });
 
-      window.localStorage.setItem(AUTH_TOKEN_STORAGE_KEY, result.access_token);
-      window.localStorage.setItem(AUTH_USER_STORAGE_KEY, JSON.stringify(result.user));
+      window.localStorage.setItem("bidreadyAuthToken", result.access_token);
+      window.localStorage.setItem("bidreadyAuthUser", JSON.stringify(result.user));
       setAuthToken(result.access_token);
       setAuthUser(result.user);
       setActorName(result.user?.email || "authenticated_user");
@@ -904,8 +978,8 @@ async function apiFetch(path, options = {}) {
   }
 
   function logoutUser() {
-    window.localStorage.removeItem(AUTH_TOKEN_STORAGE_KEY);
-    window.localStorage.removeItem(AUTH_USER_STORAGE_KEY);
+    window.localStorage.removeItem("bidreadyAuthToken");
+    window.localStorage.removeItem("bidreadyAuthUser");
     setAuthToken(null);
     setAuthUser(null);
     setMessage("Signed out. Dev fallback internal API key remains available.");
@@ -1577,8 +1651,7 @@ async function apiFetch(path, options = {}) {
               <ActorSelector actorName={actorName} setActorName={setActorName} />
             </div>
           </div>
-
-                    <AuthPanel
+          <AuthPanel
             authUser={authUser}
             authToken={authToken}
             authForm={authForm}
@@ -1591,6 +1664,9 @@ async function apiFetch(path, options = {}) {
           <ProjectViewTabs
             activeProjectView={activeProjectView}
             setActiveProjectView={setActiveProjectView}
+            busy={busy}
+            downloadExecutivePack={downloadExecutivePack}
+            selectedProjectId={selectedProjectId}
             proposalTemplate={proposalTemplate}
             clarificationTracker={clarificationTracker}
             addendumImpacts={addendumImpacts}
@@ -1760,6 +1836,33 @@ async function apiFetch(path, options = {}) {
             />
           )}
 
+          {activeProjectView === "executivePack" && (
+            <div className="workspaceView executivePackView">
+              <div className="viewHeader">
+                <div>
+                  <p className="eyebrow">Executive Pack</p>
+                  <h2>One-click executive export package</h2>
+                  <p className="muted">
+                    Download ZIP package containing Excel report, DOCX proposal draft, executive summary, governance snapshots, risks, actions, clarifications, addendum impact, and audit logs.
+                  </p>
+                </div>
+              </div>
+
+              <div className="sectionBox">
+                <h3>Included Files</h3>
+                <ul className="compactList">
+                  <li>bidready_ai_tender_report.xlsx</li>
+                  <li>bidready_ai_proposal_draft.docx</li>
+                  <li>executive_summary.md / executive_summary.json</li>
+                  <li>decision_gate.json and decision_gate_history.json</li>
+                  <li>approval_workflow.json, compliance_scorecard.json, risk_register.json</li>
+                  <li>action_tracker.json, clarification_response_tracker.json, addendum_impact_analysis.json</li>
+                  <li>audit_logs.json</li>
+                </ul>
+              </div>
+            </div>
+          )}
+
           {activeProjectView === "template" && (
             <ProposalTemplateView
               proposalTemplate={proposalTemplate}
@@ -1916,46 +2019,129 @@ function AuthPanel({
   );
 }
 
-function ProjectViewTabs({ activeProjectView, setActiveProjectView, proposalTemplate = null, clarificationTracker = { summary: null, items: [] }, addendumImpacts = { summary: null, items: [] }, decisionGateHistory = { summary: null, events: [] }, approvalWorkflow = { summary: null, request: null, steps: [] }, complianceScorecard = { summary: null, items: [] }, riskItems = [], actionItems = [] }) {
-  const tabs = [
-    { key: "summary", label: "Summary", shortLabel: "Summary", icon: LayoutDashboard },
-    { key: "requirements", label: "Requirements", shortLabel: "Reqs", icon: ClipboardCheck },
-    { key: "clarifications", label: "Clarifications", shortLabel: "Clarify", icon: FileQuestion },
-    { key: "response", label: "Response Plan", shortLabel: "Response", icon: FileText },
-    { key: "proposal", label: "Proposal Outline", shortLabel: "Proposal", icon: FileText },
-    { key: "evidence", label: "Evidence Pack", shortLabel: "Evidence", icon: FileText },
-    { key: "compliance", label: "Compliance Matrix", shortLabel: "Compliance", icon: ShieldCheck, badge: complianceScorecard?.summary?.score_percent ?? 0 },
-    { key: "approvals", label: "Approval Workflow", shortLabel: "Approvals", icon: CheckCircle2, badge: approvalWorkflow?.summary?.pending_steps ?? 0 },
-    { key: "gateHistory", label: "Gate History", shortLabel: "Gate Hist", icon: History, badge: decisionGateHistory?.summary?.total_events ?? 0 },
-    { key: "addendum", label: "Addendum Impact", shortLabel: "Addendum", icon: FileText, badge: addendumImpacts?.summary?.total_items ?? 0 },
-    { key: "clarificationTracker", label: "Clarification Tracker", shortLabel: "Clarify", icon: MessageSquare, badge: clarificationTracker?.summary?.open_items ?? 0 },
-    { key: "template", label: "Proposal Template", shortLabel: "Template", icon: FileText, badge: proposalTemplate?.id ? 1 : 0 },
-    { key: "risks", label: "Risk Register", shortLabel: "Risks", icon: AlertTriangle, badge: riskItems.length },
-    { key: "actions", label: "Action Tracker", shortLabel: "Actions", icon: ClipboardCheck, badge: actionItems.length },
-    { key: "audit", label: "Audit Log", shortLabel: "Audit", icon: History },
+
+function ProjectViewTabs({
+  activeProjectView,
+  setActiveProjectView,
+  uiLanguage = "en",
+  selectedProjectId = null,
+  busy = false,
+  downloadExecutivePack = null,
+  proposalTemplate = null,
+  clarificationTracker = { summary: null, items: [] },
+  addendumImpacts = { summary: null, items: [] },
+  decisionGateHistory = { summary: null, events: [] },
+  approvalWorkflow = { summary: null, request: null, steps: [] },
+  complianceScorecard = { summary: null, items: [] },
+  riskItems = [],
+  actionItems = [],
+}) {
+  const isIdUi = uiLanguage === "id";
+  const L = (en, id) => (isIdUi ? id : en);
+
+  const groups = [
+    {
+      key: "main",
+      label: L("Main", "Utama"),
+      description: L("Core tender review flow", "Alur utama review tender"),
+      tabs: [
+        { key: "summary", label: L("Overview", "Ringkasan") },
+        { key: "requirements", label: L("Requirements", "Requirement") },
+        { key: "clarifications", label: L("Clarifications", "Klarifikasi") },
+        { key: "response", label: L("Response", "Respons") },
+        { key: "proposal", label: L("Proposal", "Proposal") },
+        { key: "evidence", label: L("Evidence", "Evidence") },
+      ],
+    },
+    {
+      key: "governance",
+      label: L("Governance", "Governance"),
+      description: L("Compliance, approval, and audit controls", "Kontrol compliance, approval, dan audit"),
+      tabs: [
+        { key: "compliance", label: L("Compliance", "Compliance"), badge: complianceScorecard?.summary?.total_items ?? complianceScorecard?.items?.length ?? 0 },
+        { key: "approvals", label: L("Approvals", "Approval"), badge: approvalWorkflow?.summary?.pending_steps ?? approvalWorkflow?.steps?.length ?? 0 },
+        { key: "gateHistory", label: L("Gate History", "Riwayat Gate"), badge: decisionGateHistory?.summary?.total_events ?? decisionGateHistory?.events?.length ?? 0 },
+        { key: "audit", label: L("Audit", "Audit") },
+      ],
+    },
+    {
+      key: "execution",
+      label: L("Execution", "Eksekusi"),
+      description: L("Risks, actions, document changes, and clarification follow-up", "Risiko, action, perubahan dokumen, dan follow-up klarifikasi"),
+      tabs: [
+        { key: "risks", label: L("Risks", "Risiko"), badge: riskItems?.length ?? 0 },
+        { key: "actions", label: L("Actions", "Action"), badge: actionItems?.length ?? 0 },
+        { key: "addendum", label: L("Addendum", "Addendum"), badge: addendumImpacts?.summary?.total_items ?? addendumImpacts?.items?.length ?? 0 },
+        { key: "clarificationTracker", label: L("Clarify Tracker", "Tracker Klarifikasi"), badge: clarificationTracker?.summary?.open_items ?? clarificationTracker?.items?.length ?? 0 },
+      ],
+    },
+    {
+      key: "output",
+      label: L("Output", "Output"),
+      description: L("Proposal template and export preparation", "Template proposal dan persiapan export"),
+      tabs: [
+        { key: "template", label: L("Template", "Template"), badge: proposalTemplate?.id ? 1 : 0 },
+        { key: "executivePack", label: L("Executive Pack", "Executive Pack") },
+      ],
+    },
   ];
 
+  const activeGroup =
+    groups.find((group) => group.tabs.some((tab) => tab.key === activeProjectView))?.key || "main";
+
+  const selectedGroup = groups.find((group) => group.key === activeGroup) || groups[0];
+
   return (
-    <div className="projectTabs">
-      {tabs.map((tab) => {
-        const Icon = tab.icon;
-        return (
-          <button
-            key={tab.key}
-            className={activeProjectView === tab.key ? "projectTab active" : "projectTab"}
-            onClick={() => setActiveProjectView(tab.key)}
-          >
-            <Icon size={17} />
-              <span>{tab.shortLabel || tab.label}</span>
-              {typeof tab.badge === "number" && (
-                <span className="tabBadge">{tab.badge}</span>
-              )}
-          </button>
-        );
-      })}
+    <div className="groupedProjectTabs">
+      <div className="tabGroupSelector">
+        {groups.map((group) => {
+          const groupBadge = group.tabs.reduce((total, tab) => total + Number(tab.badge || 0), 0);
+          const isActive = group.key === activeGroup;
+
+          return (
+            <button
+              key={group.key}
+              type="button"
+              className={`tabGroupButton ${isActive ? "active" : ""}`}
+              onClick={() => {
+                if (!isActive && group.tabs[0]) {
+                  setActiveProjectView(group.tabs[0].key);
+                }
+              }}
+            >
+              <span>{group.label}</span>
+              {groupBadge > 0 && <strong>{groupBadge}</strong>}
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="tabGroupMeta">
+        <strong>{selectedGroup.label}</strong>
+        <span>{selectedGroup.description}</span>
+      </div>
+
+      <div className="projectViewTabs groupedTabsRow">
+        {selectedGroup.tabs.map((tab) => {
+          const isActive = activeProjectView === tab.key;
+
+          return (
+            <button
+              key={tab.key}
+              type="button"
+              className={`projectTab ${isActive ? "active" : ""}`}
+              onClick={() => setActiveProjectView(tab.key)}
+            >
+              <span>{tab.label}</span>
+              {Number(tab.badge || 0) > 0 && <span className="tabBadge">{tab.badge}</span>}
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }
+
 
 function SummaryView({
   selectedProject,
@@ -2588,7 +2774,9 @@ function ReadinessSummaryCard({ summary }) {
   );
 }
 
+
 function RequirementsView({
+  uiLanguage = "en",
   requirements,
   selectedRequirement,
   setSelectedRequirementId,
@@ -2597,6 +2785,9 @@ function RequirementsView({
   requirementEvidence,
   bulkUpdateRequirements,
 }) {
+  const isIdUi = uiLanguage === "id";
+  const L = (en, id) => (isIdUi ? id : en);
+
   const [searchQuery, setSearchQuery] = useState("");
   const [riskFilter, setRiskFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -2609,12 +2800,66 @@ function RequirementsView({
 
   const categories = Array.from(new Set(requirements.map((item) => item.category).filter(Boolean))).sort();
 
+  const isIndonesianUi = String(uiLanguage || "").toLowerCase().startsWith("id");
+
+  function humanizeToken(value) {
+    return String(value || "general")
+      .replace(/_/g, " ")
+      .replace(/\b\w/g, (char) => char.toUpperCase());
+  }
+
+  function formatRequirementRisk(value) {
+    const key = String(value || "medium").toLowerCase();
+    if (!isIndonesianUi) return key;
+    return {
+      high: "tinggi",
+      medium: "sedang",
+      low: "rendah",
+      critical: "kritis",
+    }[key] || key;
+  }
+
+  function formatRequirementStatus(value) {
+    const key = String(value || "needs_review").toLowerCase();
+    if (!isIndonesianUi) return key;
+    return {
+      needs_review: "perlu review",
+      accepted: "diterima",
+      rejected: "ditolak",
+      done: "selesai",
+      blocked: "terblokir",
+      not_applicable: "tidak berlaku",
+      needs_clarification: "perlu klarifikasi",
+    }[key] || key.replace(/_/g, " ");
+  }
+
+  function formatRequirementCategory(value) {
+    const key = String(value || "general").toLowerCase();
+    if (!isIndonesianUi) return humanizeToken(key);
+    return {
+      general: "Umum",
+      cloud_infrastructure: "Infrastruktur cloud",
+      commercial_pricing: "Harga komersial",
+      data_ai: "Data & AI",
+      application_services: "Layanan aplikasi",
+      security: "Keamanan",
+      service_management: "Manajemen layanan",
+      project_delivery: "Delivery proyek",
+      compliance: "Compliance",
+      legal: "Legal",
+      technical: "Teknis",
+      operational: "Operasional",
+    }[key] || humanizeToken(key);
+  }
+
+
   const filteredRequirements = requirements.filter((req) => {
     const query = searchQuery.trim().toLowerCase();
 
     const matchesSearch =
       !query ||
       req.requirement_text?.toLowerCase().includes(query) ||
+      translateRequirementTextForUi(req.requirement_text, uiLanguage).toLowerCase().includes(query) ||
       req.category?.toLowerCase().includes(query) ||
       req.evidence_quote?.toLowerCase().includes(query) ||
       req.suggested_owner?.toLowerCase().includes(query) ||
@@ -2631,11 +2876,11 @@ function RequirementsView({
   const allFilteredSelected = filteredIds.length > 0 && filteredIds.every((id) => selectedIds.includes(id));
 
   function toggleSelected(id) {
-    setSelectedIds((current) => (
+    setSelectedIds((current) =>
       current.includes(id)
         ? current.filter((item) => item !== id)
         : [...current, id]
-    ));
+    );
   }
 
   function toggleSelectFiltered() {
@@ -2643,6 +2888,7 @@ function RequirementsView({
       if (allFilteredSelected) {
         return current.filter((id) => !filteredIds.includes(id));
       }
+
       return Array.from(new Set([...current, ...filteredIds]));
     });
   }
@@ -2655,7 +2901,7 @@ function RequirementsView({
     if (bulkOwner.trim()) patch.suggested_owner = bulkOwner.trim();
     if (bulkNotes.trim()) patch.notes = bulkNotes.trim();
 
-    if (Object.keys(patch).length === 0) return;
+    if (Object.keys(patch).length === 0 || selectedIds.length === 0) return;
 
     await bulkUpdateRequirements(selectedIds, patch);
     setSelectedIds([]);
@@ -2666,14 +2912,14 @@ function RequirementsView({
   }
 
   return (
-    <div className="workspaceView">
+    <div className="workspaceView requirementsView">
       <div className="viewHeader">
         <div>
-          <h3>Requirements</h3>
-          <p className="muted">Review extracted requirements, evidence, owner, risk, and status.</p>
+          <h3>{L("Requirements", "Requirement")}</h3>
+          <p className="muted">{L("Review extracted requirements, evidence, owner, risk, and status.", "Review requirement yang diekstrak, evidence, owner, risiko, dan status.")}</p>
         </div>
         <span className="filterResultCount">
-          {filteredRequirements.length} / {requirements.length} shown
+          {filteredRequirements.length} / {requirements.length} {L("shown", "ditampilkan")}
         </span>
       </div>
 
@@ -2682,18 +2928,18 @@ function RequirementsView({
           className="filterInput"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Search requirement, owner, evidence, or status..."
+          placeholder={L("Search requirement, owner, evidence, or status...", "Cari requirement, owner, evidence, atau status...")}
         />
 
         <select className="filterSelect" value={riskFilter} onChange={(e) => setRiskFilter(e.target.value)}>
-          <option value="all">All risks</option>
-          <option value="high">High risk</option>
-          <option value="medium">Medium risk</option>
-          <option value="low">Low risk</option>
+          <option value="all">{L("All risks", "Semua risiko")}</option>
+          <option value="high">{L("High risk", "Risiko tinggi")}</option>
+          <option value="medium">{L("Medium risk", "Risiko sedang")}</option>
+          <option value="low">{L("Low risk", "Risiko rendah")}</option>
         </select>
 
         <select className="filterSelect" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-          <option value="all">All statuses</option>
+          <option value="all">{L("All statuses", "Semua status")}</option>
           <option value="needs_review">needs_review</option>
           <option value="accepted">accepted</option>
           <option value="rejected">rejected</option>
@@ -2704,24 +2950,11 @@ function RequirementsView({
         </select>
 
         <select className="filterSelect" value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}>
-          <option value="all">All categories</option>
+          <option value="all">{L("All categories", "Semua kategori")}</option>
           {categories.map((category) => (
             <option key={category} value={category}>{category}</option>
           ))}
         </select>
-
-        <button
-          type="button"
-          className="clearFilterButton"
-          onClick={() => {
-            setSearchQuery("");
-            setRiskFilter("all");
-            setStatusFilter("all");
-            setCategoryFilter("all");
-          }}
-        >
-          Clear
-        </button>
       </div>
 
       <div className="bulkActionBar">
@@ -2732,13 +2965,13 @@ function RequirementsView({
             onChange={toggleSelectFiltered}
             disabled={filteredIds.length === 0}
           />
-          Select filtered
+          {L("Select filtered", "Pilih hasil filter")}
         </label>
 
-        <span className="bulkCount">{selectedIds.length} selected</span>
+        <span className="bulkCount">{selectedIds.length} {L("selected", "dipilih")}</span>
 
         <select value={bulkStatus} onChange={(e) => setBulkStatus(e.target.value)}>
-          <option value="">Status...</option>
+          <option value="">{L("Status...", "Status...")}</option>
           <option value="needs_review">needs_review</option>
           <option value="accepted">accepted</option>
           <option value="rejected">rejected</option>
@@ -2749,7 +2982,7 @@ function RequirementsView({
         </select>
 
         <select value={bulkRisk} onChange={(e) => setBulkRisk(e.target.value)}>
-          <option value="">Risk...</option>
+          <option value="">{L("Risk...", "Risiko...")}</option>
           <option value="low">low</option>
           <option value="medium">medium</option>
           <option value="high">high</option>
@@ -2758,21 +2991,22 @@ function RequirementsView({
         <input
           value={bulkOwner}
           onChange={(e) => setBulkOwner(e.target.value)}
-          placeholder="Owner..."
+          placeholder={L("Owner...", "Owner...")}
         />
 
         <input
           value={bulkNotes}
           onChange={(e) => setBulkNotes(e.target.value)}
-          placeholder="Notes..."
+          placeholder={L("Notes...", "Catatan...")}
         />
 
         <button
           type="button"
-          disabled={busy || selectedIds.length === 0 || (!bulkStatus && !bulkRisk && !bulkOwner.trim() && !bulkNotes.trim())}
+          className="primaryButton"
+          disabled={busy || selectedIds.length === 0}
           onClick={applyBulkUpdate}
         >
-          Apply Bulk
+          Apply
         </button>
       </div>
 
@@ -2792,28 +3026,24 @@ function RequirementsView({
               </label>
 
               <button
+                type="button"
                 className={selectedRequirement?.id === req.id ? "reviewItem active" : "reviewItem"}
                 onClick={() => setSelectedRequirementId(req.id)}
               >
                 <div className="reviewItemTop">
-                  <span className={`miniRisk ${req.risk_level}`}>{req.risk_level}</span>
-                  <span className="miniCategory">{req.category}</span>
+                  <span className={`miniRisk ${req.risk_level || "medium"}`}>
+                    {formatRequirementRisk(req.risk_level)}
+                  </span>
+                  <span className="miniCategory">{formatRequirementCategory(req.category)}</span>
                 </div>
-                <strong>{req.requirement_text}</strong>
-                <small>Page {req.source_page || "-"} · {req.status}</small>
-              </button>
-              <button
-                type="button"
-                className="executivePackButton"
-                disabled={busy || !selectedProjectId}
-                onClick={downloadExecutivePack}
-              >
-                Export Executive Pack
+                <strong>{translateRequirementTextForUi(req.requirement_text, uiLanguage)}</strong>
+                <small>{L("Page", "Halaman")} {req.source_page || "-"} · {req.status || "needs_review"}</small>
               </button>
             </div>
           ))}
-          {requirements.length === 0 && <p className="empty">No requirements analyzed yet.</p>}
-          {requirements.length > 0 && filteredRequirements.length === 0 && <p className="empty">No matching requirement.</p>}
+
+          {requirements.length === 0 && <p className="empty">{L("No requirements analyzed yet.", "Belum ada requirement yang dianalisis.")}</p>}
+          {requirements.length > 0 && filteredRequirements.length === 0 && <p className="empty">{L("No matching requirement.", "Tidak ada requirement yang cocok.")}</p>}
         </div>
 
         <div className="detailPanel">
@@ -2825,13 +3055,14 @@ function RequirementsView({
               requirementEvidence={requirementEvidence}
             />
           ) : (
-            <p className="empty">Select a requirement.</p>
+            <p className="empty">{L("Select a requirement.", "Pilih requirement.")}</p>
           )}
         </div>
       </div>
     </div>
   );
 }
+
 
 function ClarificationsView({
   clarifications,
@@ -2925,7 +3156,7 @@ function ClarificationsView({
         </div>
         <div className="viewHeaderActions">
           <span className="filterResultCount">
-            {filteredClarifications.length} / {clarifications.length} shown
+            {filteredClarifications.length} / {clarifications.length} {L("shown", "ditampilkan")}
           </span>
           <button disabled={busy || requirements.length === 0} onClick={generateClarifications}>
             Generate Clarifications
@@ -2949,14 +3180,14 @@ function ClarificationsView({
         </select>
 
         <select className="filterSelect" value={riskFilter} onChange={(e) => setRiskFilter(e.target.value)}>
-          <option value="all">All risks</option>
-          <option value="high">High risk</option>
-          <option value="medium">Medium risk</option>
-          <option value="low">Low risk</option>
+          <option value="all">{L("All risks", "Semua risiko")}</option>
+          <option value="high">{L("High risk", "Risiko tinggi")}</option>
+          <option value="medium">{L("Medium risk", "Risiko sedang")}</option>
+          <option value="low">{L("Low risk", "Risiko rendah")}</option>
         </select>
 
         <select className="filterSelect" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-          <option value="all">All statuses</option>
+          <option value="all">{L("All statuses", "Semua status")}</option>
           <option value="open">open</option>
           <option value="needs_internal_review">needs_internal_review</option>
           <option value="answered">answered</option>
@@ -2965,7 +3196,7 @@ function ClarificationsView({
         </select>
 
         <select className="filterSelect" value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}>
-          <option value="all">All categories</option>
+          <option value="all">{L("All categories", "Semua kategori")}</option>
           {categories.map((category) => (
             <option key={category} value={category}>{category}</option>
           ))}
@@ -2994,13 +3225,13 @@ function ClarificationsView({
             onChange={toggleSelectFiltered}
             disabled={filteredIds.length === 0}
           />
-          Select filtered
+          {L("Select filtered", "Pilih hasil filter")}
         </label>
 
-        <span className="bulkCount">{selectedIds.length} selected</span>
+        <span className="bulkCount">{selectedIds.length} {L("selected", "dipilih")}</span>
 
         <select value={bulkStatus} onChange={(e) => setBulkStatus(e.target.value)}>
-          <option value="">Status...</option>
+          <option value="">{L("Status...", "Status...")}</option>
           <option value="open">open</option>
           <option value="needs_internal_review">needs_internal_review</option>
           <option value="answered">answered</option>
@@ -3009,7 +3240,7 @@ function ClarificationsView({
         </select>
 
         <select value={bulkRisk} onChange={(e) => setBulkRisk(e.target.value)}>
-          <option value="">Risk...</option>
+          <option value="">{L("Risk...", "Risiko...")}</option>
           <option value="low">low</option>
           <option value="medium">medium</option>
           <option value="high">high</option>
@@ -3025,13 +3256,13 @@ function ClarificationsView({
         <input
           value={bulkOwner}
           onChange={(e) => setBulkOwner(e.target.value)}
-          placeholder="Owner..."
+          placeholder={L("Owner...", "Owner...")}
         />
 
         <input
           value={bulkNotes}
           onChange={(e) => setBulkNotes(e.target.value)}
-          placeholder="Notes..."
+          placeholder={L("Notes...", "Catatan...")}
         />
 
         <button
@@ -3087,13 +3318,13 @@ function ClarificationsView({
   );
 }
 
-function RequirementDetail({ req, busy, updateRequirement, requirementEvidence }) {
+function RequirementDetail({ req, uiLanguage = "en", busy, updateRequirement, requirementEvidence }) {
   return (
     <div className="detailContent">
       <div className="detailTitleRow">
         <div>
           <p className="eyebrow dark">Requirement #{req.id}</p>
-          <h2>{req.requirement_text}</h2>
+          <h2>{translateRequirementTextForUi(req.requirement_text, uiLanguage)}</h2>
         </div>
         <span className={`riskBadge ${req.risk_level}`}>{req.risk_level}</span>
       </div>
@@ -3346,7 +3577,7 @@ function ResponsePlanView({
         </div>
         <div className="viewHeaderActions">
           <span className="filterResultCount">
-            {filteredItems.length} / {responsePlan.length} shown
+            {filteredItems.length} / {responsePlan.length} {L("shown", "ditampilkan")}
           </span>
           <button disabled={busy || requirements.length === 0} onClick={generateResponsePlan}>
             Generate Response Plan
@@ -3373,7 +3604,7 @@ function ResponsePlanView({
         </select>
 
         <select className="filterSelect" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-          <option value="all">All statuses</option>
+          <option value="all">{L("All statuses", "Semua status")}</option>
           <option value="draft">draft</option>
           <option value="in_review">in_review</option>
           <option value="ready">ready</option>
@@ -3382,7 +3613,7 @@ function ResponsePlanView({
         </select>
 
         <select className="filterSelect" value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}>
-          <option value="all">All categories</option>
+          <option value="all">{L("All categories", "Semua kategori")}</option>
           {categories.map((category) => (
             <option key={category} value={category}>{category}</option>
           ))}
@@ -3623,7 +3854,7 @@ function ProposalOutlineView({
         </div>
         <div className="viewHeaderActions">
           <span className="filterResultCount">
-            {filteredSections.length} / {proposalOutline.length} shown
+            {filteredSections.length} / {proposalOutline.length} {L("shown", "ditampilkan")}
           </span>
           <button disabled={busy || responsePlan.length === 0} onClick={generateProposalOutline}>
             Generate Proposal Outline
@@ -3643,7 +3874,7 @@ function ProposalOutlineView({
         />
 
         <select className="filterSelect" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-          <option value="all">All statuses</option>
+          <option value="all">{L("All statuses", "Semua status")}</option>
           <option value="draft">draft</option>
           <option value="in_review">in_review</option>
           <option value="ready">ready</option>
@@ -3903,7 +4134,7 @@ function EvidencePackView({
 
         <div className="viewHeaderActions">
           <span className="filterResultCount">
-            {filteredItems.length} / {safeEvidencePack.length} shown
+            {filteredItems.length} / {safeEvidencePack.length} {L("shown", "ditampilkan")}
           </span>
 
           <button
@@ -3942,7 +4173,7 @@ function EvidencePackView({
         />
 
         <select className="filterSelect" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-          <option value="all">All statuses</option>
+          <option value="all">{L("All statuses", "Semua status")}</option>
           <option value="open">open</option>
           <option value="requested">requested</option>
           <option value="received">received</option>
@@ -3959,7 +4190,7 @@ function EvidencePackView({
         </select>
 
         <select className="filterSelect" value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}>
-          <option value="all">All categories</option>
+          <option value="all">{L("All categories", "Semua kategori")}</option>
           {categories.map((category) => (
             <option key={category} value={category}>{category}</option>
           ))}
@@ -4568,7 +4799,7 @@ function ClarificationResponseTrackerView({
         <label>
           Status
           <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-            <option value="all">All statuses</option>
+            <option value="all">{L("All statuses", "Semua status")}</option>
             <option value="open">Open</option>
             <option value="sent">Sent</option>
             <option value="answered">Answered</option>
@@ -4861,7 +5092,7 @@ function AddendumImpactView({
         <label>
           Status
           <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-            <option value="all">All statuses</option>
+            <option value="all">{L("All statuses", "Semua status")}</option>
             <option value="open">Open</option>
             <option value="reviewed">Reviewed</option>
             <option value="accepted">Accepted</option>
@@ -5403,7 +5634,7 @@ function ComplianceScorecardView({
         <label>
           Status
           <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-            <option value="all">All statuses</option>
+            <option value="all">{L("All statuses", "Semua status")}</option>
             <option value="compliant">Compliant</option>
             <option value="partially_compliant">Partially compliant</option>
             <option value="needs_review">Needs review</option>
@@ -5416,7 +5647,7 @@ function ComplianceScorecardView({
         <label>
           Category
           <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}>
-            <option value="all">All categories</option>
+            <option value="all">{L("All categories", "Semua kategori")}</option>
             {categories.map((category) => (
               <option key={category} value={category}>{category}</option>
             ))}
@@ -5655,7 +5886,7 @@ function RiskRegisterView({
         <label>
           Status
           <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-            <option value="all">All statuses</option>
+            <option value="all">{L("All statuses", "Semua status")}</option>
             <option value="open">Open</option>
             <option value="mitigating">Mitigating</option>
             <option value="monitored">Monitored</option>
@@ -5689,7 +5920,7 @@ function RiskRegisterView({
         <label>
           Category
           <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}>
-            <option value="all">All categories</option>
+            <option value="all">{L("All categories", "Semua kategori")}</option>
             {categories.map((category) => (
               <option key={category} value={category}>{category}</option>
             ))}
