@@ -31,7 +31,8 @@ import ActorSelector from "./components/ActorSelector.jsx";
 import AuditLogView from "./views/AuditLogView.jsx";
 import DecisionGateHistoryView from "./views/DecisionGateHistoryView.jsx";
 import { L, translateRequirementTextForUi } from "./utils/i18n.js";
-import { getStoredAuthToken, getStoredAuthUser, buildAuthHeaders } from "./utils/auth.js";
+import { getStoredAuthToken, getStoredAuthUser } from "./utils/auth.js";
+import { apiFetch, downloadApiFile } from "./api/client.js";
 
 const emptyProjectForm = {
   title: "",
@@ -111,60 +112,7 @@ function App() {
     return evidencePack.find((item) => item.id === Number(selectedEvidenceItemId)) || evidencePack[0] || null;
   }, [evidencePack, selectedEvidenceItemId]);
 
-  
-async function downloadApiFile(path, filename) {
-  const response = await fetch(path, {
-    headers: {
-      ...buildAuthHeaders(),
-    },
-  });
-
-  if (!response.ok) {
-    const text = await response.text();
-    throw new Error(text || `Download failed with status ${response.status}`);
-  }
-
-  const blob = await response.blob();
-  const url = window.URL.createObjectURL(blob);
-  const anchor = document.createElement("a");
-  anchor.href = url;
-  anchor.download = filename;
-  document.body.appendChild(anchor);
-  anchor.click();
-  anchor.remove();
-  window.URL.revokeObjectURL(url);
-}
-
-async function apiFetch(path, options = {}) {
-    const internalApiKey = import.meta.env.VITE_INTERNAL_API_KEY || "";
-    const headers = new Headers(options.headers || {});
-
-    if (path.startsWith("/api/v1/") && internalApiKey) {
-      headers.set("X-Internal-API-Key", internalApiKey);
-    }
-
-    const res = await fetch(path, {
-      ...options,
-      headers,
-    });
-    const text = await res.text();
-
-    let data = null;
-    try {
-      data = text ? JSON.parse(text) : null;
-    } catch {
-      data = text;
-    }
-
-    if (!res.ok) {
-      const detail = data?.detail || data || `HTTP ${res.status}`;
-      throw new Error(detail);
-    }
-
-    return data;
-  }
-
-  async function checkHealth() {
+async function checkHealth() {
     try {
       const data = await apiFetch("/api/health");
       setApiStatus(data.status || "unknown");
@@ -313,8 +261,7 @@ async function apiFetch(path, options = {}) {
     try {
       const created = await apiFetch("/api/v1/projects", {
         method: "POST",
-        headers: {
-        ...buildAuthHeaders(), "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(projectForm),
       });
 
