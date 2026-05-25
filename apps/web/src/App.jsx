@@ -31,6 +31,7 @@ import ActorSelector from "./components/ActorSelector.jsx";
 import AuditLogView from "./views/AuditLogView.jsx";
 import DecisionGateHistoryView from "./views/DecisionGateHistoryView.jsx";
 import { L, translateRequirementTextForUi } from "./utils/i18n.js";
+import { getStoredAuthToken, getStoredAuthUser, buildAuthHeaders } from "./utils/auth.js";
 
 const emptyProjectForm = {
   title: "",
@@ -132,33 +133,6 @@ async function downloadApiFile(path, filename) {
   anchor.click();
   anchor.remove();
   window.URL.revokeObjectURL(url);
-}
-
-
-function getStoredAuthToken() {
-  return window.localStorage.getItem("bidreadyAuthToken");
-}
-
-function getStoredAuthUser() {
-  try {
-    const raw = window.localStorage.getItem("bidreadyAuthUser");
-    return raw ? JSON.parse(raw) : null;
-  } catch {
-    return null;
-  }
-}
-
-function buildAuthHeaders(extraHeaders = {}) {
-  const token = getStoredAuthToken();
-  const headers = { ...extraHeaders };
-
-  if (token) {
-    headers.Authorization = `Bearer ${token}`;
-  } else {
-    headers["X-Internal-API-Key"] = INTERNAL_API_KEY;
-  }
-
-  return headers;
 }
 
 async function apiFetch(path, options = {}) {
