@@ -132,6 +132,34 @@ if bad:
 print("✅ PASS: extracted React hook imports are explicit")
 PY_REACT_HOOKS
 
+
+echo
+echo "===== CHECK_BROKEN_ASYNC_PREFIXES ====="
+python3 - <<'PY_BROKEN_ASYNC'
+from pathlib import Path
+import re
+import sys
+
+bad = []
+
+for path in list(Path("apps/web/src").rglob("*.jsx")) + list(Path("apps/web/src").rglob("*.js")):
+    if ".bak" in path.name:
+        continue
+
+    text = path.read_text(errors="ignore")
+    for match in re.finditer(r"(?m)^[ \t]*(ync|sync)\s+function\s+", text):
+        line = text[:match.start()].count("\n") + 1
+        bad.append(f"{path}:{line}: {match.group(0).strip()}")
+
+if bad:
+    print("Broken async function prefixes found:")
+    for item in bad:
+        print("-", item)
+    sys.exit(1)
+
+print("✅ PASS: no broken async function prefixes")
+PY_BROKEN_ASYNC
+
 echo "===== Frontend Build ====="
 cd apps/web
 npm run build
