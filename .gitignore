@@ -1,0 +1,53 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+
+# Node / frontend
+node_modules/
+dist/
+build/
+.vite/
+
+# Env / secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.crt
+secrets.*
+credentials.*
+
+# Generated data
+exports/
+uploads/
+storage/
+tmp/
+temp/
+logs/
+*.log
+
+# Generated office files
+*.xlsx
+*.docx
+*.pdf
+
+# Patch backups
+*.bak
+*.bak.*
+*.backup
+*.old
+*.orig
+apps/api/app/**/*.bak*
+apps/web/src/**/*.bak*
+apps/api/app/routers.bak.*
+apps/api/app/services.bak.*
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

@@ -1,0 +1,3516 @@
+import React, { useEffect, useMemo, useState } from "react";
+import { createRoot } from "react-dom/client";
+import {
+  AlertTriangle,
+  ClipboardCheck,
+  FileQuestion,
+  FileText,
+  History,
+  LayoutDashboard,
+  Plus,
+  RefreshCw,
+  Upload,
+} from "lucide-react";
+import "./style.css";
+
+const emptyProjectForm = {
+  title: "",
+  issuer: "",
+  tender_type: "",
+};
+
+function App() {
+  const [apiStatus, setApiStatus] = useState("checking");
+  const [projects, setProjects] = useState([]);
+  const [selectedProjectId, setSelectedProjectId] = useState(null);
+
+  const [projectForm, setProjectForm] = useState(emptyProjectForm);
+  const [documents, setDocuments] = useState([]);
+  const [requirements, setRequirements] = useState([]);
+  const [clarifications, setClarifications] = useState([]);
+  const [responsePlan, setResponsePlan] = useState([]);
+  const [proposalOutline, setProposalOutline] = useState([]);
+  const [evidencePack, setEvidencePack] = useState([]);
+  const [decisionGate, setDecisionGate] = useState(null);
+  const [languageSetting, setLanguageSetting] = useState({
+    input_language: "auto",
+    output_language: "en",
+  });
+  const [auditLogs, setAuditLogs] = useState([]);
+  const [readinessSummary, setReadinessSummary] = useState(null);
+  const [projectMetadata, setProjectMetadata] = useState(null);
+  const [bidBrief, setBidBrief] = useState(null);
+  const [requirementEvidence, setRequirementEvidence] = useState(null);
+
+  const [selectedRequirementId, setSelectedRequirementId] = useState(null);
+  const [selectedClarificationId, setSelectedClarificationId] = useState(null);
+  const [selectedResponseItemId, setSelectedResponseItemId] = useState(null);
+  const [selectedProposalSectionId, setSelectedProposalSectionId] = useState(null);
+  const [selectedEvidenceItemId, setSelectedEvidenceItemId] = useState(null);
+  const [activeProjectView, setActiveProjectView] = useState("summary");
+
+  const [uploadFile, setUploadFile] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState("");
+  const [actorName, setActorName] = useState(() => {
+    return window.localStorage.getItem("bra_actor") || "bid_manager";
+  });
+
+  const selectedProject = useMemo(() => {
+    return projects.find((item) => item.id === Number(selectedProjectId)) || null;
+  }, [projects, selectedProjectId]);
+
+  const selectedRequirement = useMemo(() => {
+    return requirements.find((item) => item.id === Number(selectedRequirementId)) || requirements[0] || null;
+  }, [requirements, selectedRequirementId]);
+
+  const selectedClarification = useMemo(() => {
+    return clarifications.find((item) => item.id === Number(selectedClarificationId)) || clarifications[0] || null;
+  }, [clarifications, selectedClarificationId]);
+
+  const selectedResponseItem = useMemo(() => {
+    return responsePlan.find((item) => item.id === Number(selectedResponseItemId)) || responsePlan[0] || null;
+  }, [responsePlan, selectedResponseItemId]);
+
+  const selectedProposalSection = useMemo(() => {
+    return proposalOutline.find((item) => item.id === Number(selectedProposalSectionId)) || proposalOutline[0] || null;
+  }, [proposalOutline, selectedProposalSectionId]);
+
+  const selectedEvidenceItem = useMemo(() => {
+    return evidencePack.find((item) => item.id === Number(selectedEvidenceItemId)) || evidencePack[0] || null;
+  }, [evidencePack, selectedEvidenceItemId]);
+
+  async function apiFetch(path, options = {}) {
+    const internalApiKey = import.meta.env.VITE_INTERNAL_API_KEY || "";
+    const headers = new Headers(options.headers || {});
+
+    if (path.startsWith("/api/v1/") && internalApiKey) {
+      headers.set("X-Internal-API-Key", internalApiKey);
+    }
+
+    const res = await fetch(path, {
+      ...options,
+      headers,
+    });
+    const text = await res.text();
+
+    let data = null;
+    try {
+      data = text ? JSON.parse(text) : null;
+    } catch {
+      data = text;
+    }
+
+    if (!res.ok) {
+      const detail = data?.detail || data || `HTTP ${res.status}`;
+      throw new Error(detail);
+    }
+
+    return data;
+  }
+
+  async function checkHealth() {
+    try {
+      const data = await apiFetch("/api/health");
+      setApiStatus(data.status || "unknown");
+    } catch {
+      setApiStatus("offline");
+    }
+  }
+
+  async function loadProjects() {
+    try {
+      const data = await apiFetch("/api/v1/projects");
+      setProjects(data);
+
+      if (!selectedProjectId && data.length > 0) {
+        setSelectedProjectId(data[0].id);
+      }
+    } catch (err) {
+      setMessage(`Failed to load bid projects: ${err.message}`);
+    }
+  }
+
+  async function loadProjectData(projectId) {
+    if (!projectId) return;
+
+    try {
+      const [docs, reqs, qs, responseItems, proposalSections, evidenceItems, gate, language, audits, summary, metadata, brief] = await Promise.all([
+        apiFetch(`/api/v1/projects/${projectId}/documents`).catch(() => []),
+        apiFetch(`/api/v1/projects/${projectId}/requirements`).catch(() => []),
+        apiFetch(`/api/v1/projects/${projectId}/clarifications`).catch(() => []),
+        apiFetch(`/api/v1/projects/${projectId}/response-plan`).catch(() => []),
+        apiFetch(`/api/v1/projects/${projectId}/proposal-outline`).catch(() => []),
+        apiFetch(`/api/v1/projects/${projectId}/evidence-pack`).catch(() => []),
+        apiFetch(`/api/v1/projects/${projectId}/decision-gate`).catch(() => null),
+        apiFetch(`/api/v1/projects/${projectId}/language`).catch(() => ({
+          input_language: "auto",
+          output_language: "en",
+        })),
+        apiFetch(`/api/v1/projects/${projectId}/audit-logs`).catch(() => []),
+        apiFetch(`/api/v1/projects/${projectId}/readiness-summary`).catch(() => null),
+        apiFetch(`/api/v1/projects/${projectId}/metadata`).catch(() => null),
+        apiFetch(`/api/v1/projects/${projectId}/bid-brief`).catch(() => null),
+      ]);
+
+      setDocuments(docs);
+      setRequirements(reqs);
+      setClarifications(qs);
+      setResponsePlan(responseItems);
+      setProposalOutline(proposalSections);
+      setEvidencePack(evidenceItems);
+      setDecisionGate(gate);
+      setLanguageSetting(language || { input_language: "auto", output_language: "en" });
+      setAuditLogs(audits);
+      setReadinessSummary(summary);
+      setProjectMetadata(metadata);
+      setBidBrief(brief);
+
+      if (reqs.length > 0 && !reqs.find((item) => item.id === Number(selectedRequirementId))) {
+        setSelectedRequirementId(reqs[0].id);
+      }
+
+      if (qs.length > 0 && !qs.find((item) => item.id === Number(selectedClarificationId))) {
+        setSelectedClarificationId(qs[0].id);
+      }
+
+      if (responseItems.length > 0 && !responseItems.find((item) => item.id === Number(selectedResponseItemId))) {
+        setSelectedResponseItemId(responseItems[0].id);
+      }
+
+      if (proposalSections.length > 0 && !proposalSections.find((item) => item.id === Number(selectedProposalSectionId))) {
+        setSelectedProposalSectionId(proposalSections[0].id);
+      }
+
+      if (typeof evidenceItems !== "undefined" && evidenceItems.length > 0 && !evidenceItems.find((item) => item.id === Number(selectedEvidenceItemId))) {
+        setSelectedEvidenceItemId(evidenceItems[0].id);
+      }
+    } catch (err) {
+      setMessage(`Failed to load project data: ${err.message}`);
+    }
+  }
+
+  async function loadRequirementEvidence(requirementId) {
+    if (!requirementId) {
+      setRequirementEvidence(null);
+      return;
+    }
+
+    try {
+      const evidence = await apiFetch(`/api/v1/requirements/${requirementId}/evidence`);
+      setRequirementEvidence(evidence);
+    } catch (err) {
+      setRequirementEvidence(null);
+      setMessage(`Failed to load requirement evidence: ${err.message}`);
+    }
+  }
+
+  useEffect(() => {
+    checkHealth();
+    loadProjects();
+  }, []);
+
+  useEffect(() => {
+    window.localStorage.setItem("bra_actor", actorName);
+  }, [actorName]);
+
+  useEffect(() => {
+    if (selectedProjectId) {
+      loadProjectData(selectedProjectId);
+    }
+  }, [selectedProjectId]);
+
+  useEffect(() => {
+    if (selectedRequirementId) {
+      loadRequirementEvidence(selectedRequirementId);
+    } else {
+      setRequirementEvidence(null);
+    }
+  }, [selectedRequirementId]);
+
+  async function createProject(e) {
+    e.preventDefault();
+
+    if (!projectForm.title.trim()) {
+      setMessage("Bid / RFP title is required.");
+      return;
+    }
+
+    setBusy(true);
+    setMessage("");
+
+    try {
+      const created = await apiFetch("/api/v1/projects", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(projectForm),
+      });
+
+      setProjectForm(emptyProjectForm);
+      await loadProjects();
+      setSelectedProjectId(created.id);
+      setActiveProjectView("summary");
+      setMessage(`Bid project created: ${created.title}`);
+    } catch (err) {
+      setMessage(`Create bid project failed: ${err.message}`);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function uploadDocument(e) {
+    e.preventDefault();
+
+    if (!selectedProjectId) {
+      setMessage("Select a bid project first.");
+      return;
+    }
+
+    if (!uploadFile) {
+      setMessage("Choose a PDF file first.");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("file", uploadFile);
+
+    setBusy(true);
+    setMessage("");
+
+    try {
+      const uploaded = await apiFetch(`/api/v1/projects/${selectedProjectId}/documents`, {
+        method: "POST",
+        body: formData,
+      });
+
+      setUploadFile(null);
+      await loadProjects();
+      await loadProjectData(selectedProjectId);
+      setMessage(`RFP document processed: ${uploaded.filename}`);
+    } catch (err) {
+      setMessage(`Upload failed: ${err.message}`);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function analyzeRfp() {
+    if (!selectedProjectId) {
+      setMessage("Select a bid project first.");
+      return;
+    }
+
+    setBusy(true);
+    setMessage("");
+
+    try {
+      const extracted = await apiFetch(`/api/v1/projects/${selectedProjectId}/extract-requirements`, {
+        method: "POST",
+      });
+
+      await loadProjects();
+      await loadProjectData(selectedProjectId);
+      if (extracted.length > 0) setSelectedRequirementId(extracted[0].id);
+      setActiveProjectView("requirements");
+      setMessage(`Analyzed ${extracted.length} requirement item(s).`);
+    } catch (err) {
+      setMessage(`Analysis failed: ${err.message}`);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function generateClarifications() {
+    if (!selectedProjectId) {
+      setMessage("Select a bid project first.");
+      return;
+    }
+
+    if (requirements.length === 0) {
+      setMessage("Analyze RFP first before generating clarification questions.");
+      return;
+    }
+
+    setBusy(true);
+    setMessage("");
+
+    try {
+      const generated = await apiFetch(`/api/v1/projects/${selectedProjectId}/generate-clarifications`, {
+        method: "POST",
+        headers: { "X-Actor": actorName },
+      });
+
+      await loadProjectData(selectedProjectId);
+      if (generated.length > 0) setSelectedClarificationId(generated[0].id);
+      setActiveProjectView("clarifications");
+      setMessage(`Generated ${generated.length} clarification question(s).`);
+    } catch (err) {
+      setMessage(`Generate clarification failed: ${err.message}`);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function updateRequirement(requirementId, patch) {
+    if (!selectedProjectId) return;
+
+    setBusy(true);
+    setMessage("");
+
+    try {
+      await apiFetch(`/api/v1/requirements/${requirementId}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Actor": actorName,
+        },
+        body: JSON.stringify(patch),
+      });
+
+      await loadProjectData(selectedProjectId);
+      setSelectedRequirementId(requirementId);
+      setMessage(`Requirement #${requirementId} updated.`);
+    } catch (err) {
+      setMessage(`Update failed: ${err.message}`);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function updateClarification(questionId, patch) {
+    if (!selectedProjectId) return;
+
+    setBusy(true);
+    setMessage("");
+
+    try {
+      await apiFetch(`/api/v1/clarifications/${questionId}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Actor": actorName,
+        },
+        body: JSON.stringify(patch),
+      });
+
+      await loadProjectData(selectedProjectId);
+      setSelectedClarificationId(questionId);
+      setMessage(`Clarification question #${questionId} updated.`);
+    } catch (err) {
+      setMessage(`Clarification update failed: ${err.message}`);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function downloadReadinessMatrix() {
+    if (!selectedProjectId) {
+      setMessage("Select a bid project first.");
+      return;
+    }
+
+    if (requirements.length === 0) {
+      setMessage("Analyze RFP first before exporting the readiness matrix.");
+      return;
+    }
+
+    setBusy(true);
+    setMessage("");
+
+    try {
+      const internalApiKey = import.meta.env.VITE_INTERNAL_API_KEY || "";
+      const headers = new Headers();
+
+      if (internalApiKey) {
+        headers.set("X-Internal-API-Key", internalApiKey);
+      }
+
+      const res = await fetch(`/api/v1/projects/${selectedProjectId}/exports/checklist.xlsx`, {
+        headers,
+      });
+
+      if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(errorText || `HTTP ${res.status}`);
+      }
+
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `bidready_ai_tender_report_project_${selectedProjectId}.xlsx`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+
+      setMessage("Readiness matrix exported.");
+    } catch (err) {
+      setMessage(`Export failed: ${err.message}`);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function bulkUpdateRequirements(requirementIds, patch) {
+    if (!selectedProjectId || requirementIds.length === 0) return;
+
+    setBusy(true);
+    setMessage("");
+
+    try {
+      await apiFetch("/api/v1/requirements/bulk-update", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Actor": actorName,
+        },
+        body: JSON.stringify({
+          requirement_ids: requirementIds,
+          ...patch,
+        }),
+      });
+
+      await loadProjectData(selectedProjectId);
+      setMessage(`Bulk updated ${requirementIds.length} requirement(s).`);
+    } catch (err) {
+      setMessage(`Bulk requirement update failed: ${err.message}`);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function bulkUpdateClarifications(questionIds, patch) {
+    if (!selectedProjectId || questionIds.length === 0) return;
+
+    setBusy(true);
+    setMessage("");
+
+    try {
+      await apiFetch("/api/v1/clarifications/bulk-update", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Actor": actorName,
+        },
+        body: JSON.stringify({
+          question_ids: questionIds,
+          ...patch,
+        }),
+      });
+
+      await loadProjectData(selectedProjectId);
+      setMessage(`Bulk updated ${questionIds.length} clarification question(s).`);
+    } catch (err) {
+      setMessage(`Bulk clarification update failed: ${err.message}`);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function extractMetadata() {
+    if (!selectedProjectId) {
+      setMessage("Select a bid project first.");
+      return;
+    }
+
+    if (documents.length === 0) {
+      setMessage("Upload and parse an RFP document first before extracting metadata.");
+      return;
+    }
+
+    setBusy(true);
+    setMessage("");
+
+    try {
+      const metadata = await apiFetch(`/api/v1/projects/${selectedProjectId}/extract-metadata`, {
+        method: "POST",
+        headers: {
+          "X-Actor": actorName,
+        },
+      });
+
+      await loadProjectData(selectedProjectId);
+      setProjectMetadata(metadata);
+      setMessage("RFP metadata extracted.");
+    } catch (err) {
+      setMessage(`Metadata extraction failed: ${err.message}`);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function generateResponsePlan() {
+    if (!selectedProjectId) {
+      setMessage("Select a bid project first.");
+      return;
+    }
+
+    if (requirements.length === 0) {
+      setMessage("Analyze RFP first before generating response plan.");
+      return;
+    }
+
+    setBusy(true);
+    setMessage("");
+
+    try {
+      const result = await apiFetch(`/api/v1/projects/${selectedProjectId}/generate-response-plan`, {
+        method: "POST",
+        headers: {
+          "X-Actor": actorName,
+        },
+      });
+
+      await loadProjectData(selectedProjectId);
+      if (result.items?.length > 0) setSelectedResponseItemId(result.items[0].id);
+      setActiveProjectView("response");
+      setMessage(`Generated ${result.generated_count} response plan item(s).`);
+    } catch (err) {
+      setMessage(`Generate response plan failed: ${err.message}`);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function updateResponseItem(itemId, patch) {
+    if (!selectedProjectId) return;
+
+    setBusy(true);
+    setMessage("");
+
+    try {
+      await apiFetch(`/api/v1/response-items/${itemId}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Actor": actorName,
+        },
+        body: JSON.stringify(patch),
+      });
+
+      await loadProjectData(selectedProjectId);
+      setSelectedResponseItemId(itemId);
+      setMessage(`Response item #${itemId} updated.`);
+    } catch (err) {
+      setMessage(`Response item update failed: ${err.message}`);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function generateProposalOutline() {
+    if (!selectedProjectId) {
+      setMessage("Select a bid project first.");
+      return;
+    }
+
+    if (responsePlan.length === 0) {
+      setMessage("Generate response plan first before creating proposal outline.");
+      return;
+    }
+
+    setBusy(true);
+    setMessage("");
+
+    try {
+      const result = await apiFetch(`/api/v1/projects/${selectedProjectId}/generate-proposal-outline`, {
+        method: "POST",
+        headers: {
+          "X-Actor": actorName,
+        },
+      });
+
+      await loadProjectData(selectedProjectId);
+      if (result.sections?.length > 0) setSelectedProposalSectionId(result.sections[0].id);
+      setActiveProjectView("proposal");
+      setMessage(`Generated ${result.generated_count} proposal section(s).`);
+    } catch (err) {
+      setMessage(`Generate proposal outline failed: ${err.message}`);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function updateProposalSection(sectionId, patch) {
+    if (!selectedProjectId) return;
+
+    setBusy(true);
+    setMessage("");
+
+    try {
+      await apiFetch(`/api/v1/proposal-sections/${sectionId}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Actor": actorName,
+        },
+        body: JSON.stringify(patch),
+      });
+
+      await loadProjectData(selectedProjectId);
+      setSelectedProposalSectionId(sectionId);
+      setMessage(`Proposal section #${sectionId} updated.`);
+    } catch (err) {
+      setMessage(`Proposal section update failed: ${err.message}`);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function downloadProposalDraft() {
+    if (!selectedProjectId) {
+      setMessage("Select a bid project first.");
+      return;
+    }
+
+    if (proposalOutline.length === 0) {
+      setMessage("Generate proposal outline first before exporting proposal draft.");
+      return;
+    }
+
+    setBusy(true);
+    setMessage("");
+
+    try {
+      const internalApiKey = import.meta.env.VITE_INTERNAL_API_KEY || "";
+      const headers = new Headers();
+
+      if (internalApiKey) {
+        headers.set("X-Internal-API-Key", internalApiKey);
+      }
+
+      const res = await fetch(`/api/v1/projects/${selectedProjectId}/exports/proposal-draft.docx`, {
+        headers,
+      });
+
+      if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(errorText || `HTTP ${res.status}`);
+      }
+
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `bidready_ai_proposal_draft_project_${selectedProjectId}.docx`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+
+      setMessage("Proposal draft exported.");
+    } catch (err) {
+      setMessage(`Proposal draft export failed: ${err.message}`);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function generateEvidencePack() {
+    if (!selectedProjectId) {
+      setMessage("Select a bid project first.");
+      return;
+    }
+
+    if (!projectMetadata && responsePlan.length === 0 && proposalOutline.length === 0) {
+      setMessage("Generate metadata, response plan, or proposal outline first before creating evidence pack.");
+      return;
+    }
+
+    setBusy(true);
+    setMessage("");
+
+    try {
+      const result = await apiFetch(`/api/v1/projects/${selectedProjectId}/generate-evidence-pack`, {
+        method: "POST",
+        headers: {
+          "X-Actor": actorName,
+        },
+      });
+
+      await loadProjectData(selectedProjectId);
+
+      if (result.items?.length > 0) {
+        setSelectedEvidenceItemId(result.items[0].id);
+      }
+
+      setActiveProjectView("evidence");
+      setMessage(`Generated ${result.generated_count} evidence item(s).`);
+    } catch (err) {
+      setMessage(`Generate evidence pack failed: ${err.message}`);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function updateEvidenceItem(itemId, patch) {
+    if (!selectedProjectId) return;
+
+    setBusy(true);
+    setMessage("");
+
+    try {
+      await apiFetch(`/api/v1/evidence-items/${itemId}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Actor": actorName,
+        },
+        body: JSON.stringify(patch),
+      });
+
+      await loadProjectData(selectedProjectId);
+      setSelectedEvidenceItemId(itemId);
+      setMessage(`Evidence item #${itemId} updated.`);
+    } catch (err) {
+      setMessage(`Evidence item update failed: ${err.message}`);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+
+
+  async function updateLanguageSetting(patch) {
+    if (!selectedProjectId) {
+      setMessage("Select a bid project first.");
+      return;
+    }
+
+    setBusy(true);
+    setMessage("");
+
+    try {
+      const updated = await apiFetch(`/api/v1/projects/${selectedProjectId}/language`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Actor": actorName,
+        },
+        body: JSON.stringify(patch),
+      });
+
+      setLanguageSetting(updated);
+      setMessage(`Language updated: output ${updated.output_language === "id" ? "Indonesia" : "English"}. Regenerate analysis artifacts to apply it.`);
+    } catch (err) {
+      setMessage(`Language update failed: ${err.message}`);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function regenerateAllArtifacts() {
+    if (!selectedProjectId) {
+      setMessage("Select a bid project first.");
+      return;
+    }
+
+    if (requirements.length === 0) {
+      setMessage("Analyze RFP first before regenerating all artifacts.");
+      return;
+    }
+
+    let currentStep = "starting";
+
+    setBusy(true);
+    setMessage("Regenerating all artifacts...");
+
+    try {
+      const steps = [
+        {
+          label: "clarifications",
+          path: `/api/v1/projects/${selectedProjectId}/generate-clarifications`,
+        },
+        {
+          label: "response plan",
+          path: `/api/v1/projects/${selectedProjectId}/generate-response-plan`,
+        },
+        {
+          label: "proposal outline",
+          path: `/api/v1/projects/${selectedProjectId}/generate-proposal-outline`,
+        },
+        {
+          label: "evidence pack",
+          path: `/api/v1/projects/${selectedProjectId}/generate-evidence-pack`,
+        },
+        {
+          label: "decision gate",
+          path: `/api/v1/projects/${selectedProjectId}/generate-decision-gate`,
+        },
+      ];
+
+      for (const step of steps) {
+        currentStep = step.label;
+        setMessage(`Regenerating ${step.label}...`);
+
+        await apiFetch(step.path, {
+          method: "POST",
+          headers: {
+            "X-Actor": actorName,
+          },
+        });
+      }
+
+      await loadProjectData(selectedProjectId);
+      setActiveProjectView("summary");
+      setMessage("All artifacts regenerated successfully.");
+    } catch (err) {
+      setMessage(`Regenerate all artifacts failed at ${currentStep}: ${err.message}`);
+      await loadProjectData(selectedProjectId);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function generateDecisionGate() {
+    if (!selectedProjectId) {
+      setMessage("Select a bid project first.");
+      return;
+    }
+
+    setBusy(true);
+    setMessage("Generating decision gate...");
+
+    try {
+      const result = await apiFetch(`/api/v1/projects/${selectedProjectId}/generate-decision-gate`, {
+        method: "POST",
+        headers: {
+          "X-Actor": actorName,
+        },
+      });
+
+      setDecisionGate(result.gate || null);
+      await loadProjectData(selectedProjectId);
+      setActiveProjectView("summary");
+      setMessage(`Decision gate generated for project #${selectedProjectId}.`);
+    } catch (err) {
+      setMessage(`Generate decision gate failed: ${err.message}`);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+
+  async function updateDecisionGate(gateId, patch) {
+    if (!selectedProjectId || !gateId) return;
+
+    setBusy(true);
+    setMessage("");
+
+    try {
+      const updated = await apiFetch(`/api/v1/decision-gates/${gateId}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Actor": actorName,
+        },
+        body: JSON.stringify(patch),
+      });
+
+      setDecisionGate(updated);
+      await loadProjectData(selectedProjectId);
+      setMessage(`Decision gate #${gateId} updated.`);
+    } catch (err) {
+      setMessage(`Decision gate update failed: ${err.message}`);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <main className="page workspacePage">
+      <section className="hero brandHero">
+        <img className="brandMark" src="/brand/bidready-mark.svg" alt="BidReady AI logo" />
+        <div>
+          <p className="eyebrow">Tender Intelligence Platform</p>
+          <h1>BidReady AI</h1>
+          <p className="subtitle">
+            Tender Intelligence Platform for RFP analysis, bid readiness, clarification management, evidence tracking, and executive tender reporting.
+          </p>
+          <div className={`status ${apiStatus === "ok" ? "ok" : "bad"}`}>
+            API Status: {apiStatus}
+          </div>
+        </div>
+      </section>
+
+      {message && <div className="notice">{message}</div>}
+
+      <section className="layout workspaceLayout">
+        <aside className="panel workspaceSidebar">
+          <div className="panelHeader">
+            <h2>Create Bid Project</h2>
+            <Plus />
+          </div>
+
+          <form onSubmit={createProject} className="form">
+            <label>
+              Bid / RFP Title
+              <input
+                value={projectForm.title}
+                onChange={(e) => setProjectForm({ ...projectForm, title: e.target.value })}
+                placeholder="Enterprise RFP - Managed Services"
+              />
+            </label>
+
+            <label>
+              Client / Issuer
+              <input
+                value={projectForm.issuer}
+                onChange={(e) => setProjectForm({ ...projectForm, issuer: e.target.value })}
+                placeholder="Client / Issuer"
+              />
+            </label>
+
+            <label>
+              Service Domain
+              <input
+                value={projectForm.tender_type}
+                onChange={(e) => setProjectForm({ ...projectForm, tender_type: e.target.value })}
+                placeholder="Application / Cloud / Managed Services"
+              />
+            </label>
+
+            <button disabled={busy} type="submit">
+              Create Bid Project
+            </button>
+          </form>
+
+          <div className="divider" />
+
+          <div className="panelHeader">
+            <h2>Bid Projects</h2>
+            <button className="iconButton" onClick={loadProjects} disabled={busy}>
+              <RefreshCw size={16} />
+            </button>
+          </div>
+
+          <div className="projectList">
+            {projects.map((project) => (
+              <button
+                key={project.id}
+                className={`projectItem ${Number(selectedProjectId) === project.id ? "active" : ""}`}
+                onClick={() => {
+                  setSelectedProjectId(project.id);
+                  setActiveProjectView("summary");
+                }}
+              >
+                <strong>{project.title}</strong>
+                <span>{project.issuer || "No issuer"} · {project.status}</span>
+              </button>
+            ))}
+
+            {projects.length === 0 && <p className="empty">No bid project yet.</p>}
+          </div>
+        </aside>
+
+        <section className="mainPanel projectWorkspace">
+          <div className="workspaceTop">
+            <div>
+              <p className="eyebrow dark">Project Workspace</p>
+              <h2>{selectedProject ? selectedProject.title : "Select a bid project"}</h2>
+              {selectedProject && (
+                <p className="muted">
+                  Project #{selectedProject.id} · {selectedProject.issuer || "No issuer"} ·{" "}
+                  {selectedProject.tender_type || "No domain"} · {selectedProject.status}
+                </p>
+              )}
+            </div>
+
+            <div className="workspaceHeaderControls">
+              <LanguageSelector
+                languageSetting={languageSetting}
+                updateLanguageSetting={updateLanguageSetting}
+                busy={busy}
+              />
+              <ActorSelector actorName={actorName} setActorName={setActorName} />
+            </div>
+          </div>
+
+          <ProjectViewTabs activeProjectView={activeProjectView} setActiveProjectView={setActiveProjectView} />
+
+          {activeProjectView === "summary" && (
+            <SummaryView
+              selectedProject={selectedProject}
+              readinessSummary={readinessSummary}
+              projectMetadata={projectMetadata}
+              bidBrief={bidBrief}
+              responsePlan={responsePlan}
+              proposalOutline={proposalOutline}
+              evidencePack={evidencePack}
+              decisionGate={decisionGate}
+              documents={documents}
+              requirements={requirements}
+              clarifications={clarifications}
+              auditLogs={auditLogs}
+              uploadFile={uploadFile}
+              setUploadFile={setUploadFile}
+              uploadDocument={uploadDocument}
+              analyzeRfp={analyzeRfp}
+              generateClarifications={generateClarifications}
+              generateResponsePlan={generateResponsePlan}
+              generateProposalOutline={generateProposalOutline}
+              generateDecisionGate={generateDecisionGate}
+              regenerateAllArtifacts={regenerateAllArtifacts}
+              updateDecisionGate={updateDecisionGate}
+              extractMetadata={extractMetadata}
+              busy={busy}
+              selectedProjectId={selectedProjectId}
+              downloadReadinessMatrix={downloadReadinessMatrix}
+              downloadProposalDraft={downloadProposalDraft}
+            />
+          )}
+
+          {activeProjectView === "requirements" && (
+            <RequirementsView
+              requirements={requirements}
+              selectedRequirement={selectedRequirement}
+              setSelectedRequirementId={setSelectedRequirementId}
+              busy={busy}
+              updateRequirement={updateRequirement}
+              requirementEvidence={requirementEvidence}
+              bulkUpdateRequirements={bulkUpdateRequirements}
+            />
+          )}
+
+          {activeProjectView === "clarifications" && (
+            <ClarificationsView
+              clarifications={clarifications}
+              selectedClarification={selectedClarification}
+              setSelectedClarificationId={setSelectedClarificationId}
+              busy={busy}
+              updateClarification={updateClarification}
+              generateClarifications={generateClarifications}
+              requirements={requirements}
+              bulkUpdateClarifications={bulkUpdateClarifications}
+            />
+          )}
+
+          {activeProjectView === "response" && (
+            <ResponsePlanView
+              responsePlan={responsePlan}
+              selectedResponseItem={selectedResponseItem}
+              setSelectedResponseItemId={setSelectedResponseItemId}
+              busy={busy}
+              updateResponseItem={updateResponseItem}
+              generateResponsePlan={generateResponsePlan}
+              requirements={requirements}
+            />
+          )}
+
+          {activeProjectView === "proposal" && (
+            <ProposalOutlineView
+              proposalOutline={proposalOutline}
+              selectedProposalSection={selectedProposalSection}
+              setSelectedProposalSectionId={setSelectedProposalSectionId}
+              busy={busy}
+              updateProposalSection={updateProposalSection}
+              generateProposalOutline={generateProposalOutline}
+              responsePlan={responsePlan}
+              downloadProposalDraft={downloadProposalDraft}
+            />
+          )}
+
+          {activeProjectView === "evidence" && (
+            <EvidencePackView
+              evidencePack={evidencePack}
+              decisionGate={decisionGate}
+              selectedEvidenceItem={selectedEvidenceItem}
+              setSelectedEvidenceItemId={setSelectedEvidenceItemId}
+              busy={busy}
+              updateEvidenceItem={updateEvidenceItem}
+              generateEvidencePack={generateEvidencePack}
+              generateDecisionGate={generateDecisionGate}
+              updateDecisionGate={updateDecisionGate}
+              projectMetadata={projectMetadata}
+              responsePlan={responsePlan}
+              proposalOutline={proposalOutline}
+            />
+          )}
+
+          {activeProjectView === "audit" && (
+            <AuditLogView auditLogs={auditLogs} />
+          )}
+        </section>
+      </section>
+    </main>
+  );
+}
+
+function LanguageSelector({ languageSetting, updateLanguageSetting, busy }) {
+  const outputLanguage = languageSetting?.output_language || "en";
+  const inputLanguage = languageSetting?.input_language || "auto";
+
+  return (
+    <div className="languageSelector">
+      <span>Language</span>
+
+      <div className="languageSelectorGrid">
+        <label>
+          Input
+          <select
+            value={inputLanguage}
+            disabled={busy}
+            onChange={(e) => updateLanguageSetting({ input_language: e.target.value })}
+          >
+            <option value="auto">Auto detect</option>
+            <option value="en">English</option>
+            <option value="id">Indonesia</option>
+          </select>
+        </label>
+
+        <label>
+          Output
+          <select
+            value={outputLanguage}
+            disabled={busy}
+            onChange={(e) => updateLanguageSetting({ output_language: e.target.value })}
+          >
+            <option value="en">English</option>
+            <option value="id">Indonesia</option>
+          </select>
+        </label>
+      </div>
+
+      <small>
+        {outputLanguage === "id"
+          ? "Generated analysis will use Bahasa Indonesia after regeneration."
+          : "Generated analysis will use English after regeneration."}
+      </small>
+    </div>
+  );
+}
+
+function ActorSelector({ actorName, setActorName }) {
+  const actors = [
+    "bid_manager",
+    "solution_architect",
+    "commercial_team",
+    "security_compliance_team",
+    "delivery_manager",
+    "legal_team",
+    "resource_manager",
+  ];
+
+  return (
+    <div className="actorSelector">
+      <span>Acting as</span>
+      <select value={actorName} onChange={(e) => setActorName(e.target.value)}>
+        {actors.map((actor) => (
+          <option key={actor} value={actor}>
+            {actor}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
+function formatWibDateTime(value) {
+  if (!value) return "-";
+
+  // Backend stores UTC-like datetime without timezone suffix.
+  // Add Z so browser treats it as UTC, then display as Asia/Jakarta.
+  const normalized = /Z$|[+-]\d{2}:\d{2}$/.test(value) ? value : `${value}Z`;
+  const date = new Date(normalized);
+
+  if (Number.isNaN(date.getTime())) return value;
+
+  return `${new Intl.DateTimeFormat("id-ID", {
+    dateStyle: "medium",
+    timeStyle: "medium",
+    timeZone: "Asia/Jakarta",
+    hour12: false,
+  }).format(date)} WIB`;
+}
+
+function ProjectViewTabs({ activeProjectView, setActiveProjectView }) {
+  const tabs = [
+    { key: "summary", label: "Summary", icon: LayoutDashboard },
+    { key: "requirements", label: "Requirements", icon: ClipboardCheck },
+    { key: "clarifications", label: "Clarifications", icon: FileQuestion },
+    { key: "response", label: "Response Plan", icon: FileText },
+    { key: "proposal", label: "Proposal Outline", icon: FileText },
+    { key: "evidence", label: "Evidence Pack", icon: FileText },
+    { key: "audit", label: "Audit Log", icon: History },
+  ];
+
+  return (
+    <div className="projectTabs">
+      {tabs.map((tab) => {
+        const Icon = tab.icon;
+        return (
+          <button
+            key={tab.key}
+            className={activeProjectView === tab.key ? "projectTab active" : "projectTab"}
+            onClick={() => setActiveProjectView(tab.key)}
+          >
+            <Icon size={17} />
+            {tab.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function SummaryView({
+  selectedProject,
+  readinessSummary,
+  projectMetadata,
+  bidBrief,
+  responsePlan,
+  proposalOutline,
+  evidencePack,
+  decisionGate,
+  documents,
+  requirements,
+  clarifications,
+  auditLogs,
+  uploadFile,
+  setUploadFile,
+  uploadDocument,
+  analyzeRfp,
+  generateClarifications,
+  generateResponsePlan,
+  generateProposalOutline,
+  generateDecisionGate,
+  regenerateAllArtifacts,
+  updateDecisionGate,
+  extractMetadata,
+  busy,
+  selectedProjectId,
+  downloadReadinessMatrix,
+  downloadProposalDraft,
+}) {
+  const safeEvidencePack = Array.isArray(evidencePack) ? evidencePack : [];
+
+  const safeProposalOutline = Array.isArray(proposalOutline) ? proposalOutline : [];
+
+  const safeResponsePlan = Array.isArray(responsePlan) ? responsePlan : [];
+
+  return (
+    <div className="workspaceView">
+      <ExecutiveDashboardCard
+        readinessSummary={readinessSummary}
+        decisionGate={decisionGate}
+        requirements={requirements}
+        clarifications={clarifications}
+        responsePlan={safeResponsePlan}
+        proposalOutline={safeProposalOutline}
+        evidencePack={safeEvidencePack}
+      />
+
+      <ReadinessSummaryCard summary={readinessSummary} />
+<DecisionGateCard
+        gate={decisionGate}
+        busy={busy}
+        generateDecisionGate={generateDecisionGate}
+        updateDecisionGate={updateDecisionGate}
+      />
+
+      <RfpMetadataCard metadata={projectMetadata} />
+
+      <BidBriefCard bidBrief={bidBrief} />
+
+      <div className="summaryGrid">
+        <div className="summaryPanel">
+          <h3>Workspace Metrics</h3>
+          <div className="readinessMetrics">
+            <div>
+              <strong>{documents.length}</strong>
+              <span>Documents</span>
+            </div>
+            <div>
+              <strong>{requirements.length}</strong>
+              <span>Requirements</span>
+            </div>
+            <div>
+              <strong>{clarifications.length}</strong>
+              <span>Clarifications</span>
+            </div>
+            <div>
+              <strong>{auditLogs.length}</strong>
+              <span>Audit Logs</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="summaryPanel">
+          <h3>Actions</h3>
+
+          <form onSubmit={uploadDocument} className="summaryUpload">
+            <input
+              type="file"
+              accept="application/pdf"
+              onChange={(e) => setUploadFile(e.target.files?.[0] || null)}
+            />
+            <button disabled={busy || !selectedProjectId || !uploadFile} type="submit">
+              <Upload size={16} />
+              Upload & Parse
+            </button>
+          </form>
+
+          <div className="summaryActions">
+            <button disabled={busy || documents.length === 0} onClick={extractMetadata}>
+              Extract Metadata
+            </button>
+
+            <button disabled={busy || documents.length === 0} onClick={analyzeRfp}>
+              Analyze RFP
+            </button>
+            <button disabled={busy || requirements.length === 0} onClick={generateClarifications}>
+              Generate Clarifications
+            </button>
+
+            <button disabled={busy || requirements.length === 0} onClick={generateResponsePlan}>
+              Generate Response Plan
+            </button>
+
+
+<button disabled={busy || safeResponsePlan.length === 0} onClick={generateProposalOutline}>
+              Generate Proposal Outline
+            </button>
+
+            <button type="button" onClick={generateDecisionGate}>
+              Generate Decision Gate
+            </button>
+
+              <button
+                type="button"
+                className="regenerateAllButton"
+                disabled={busy || requirements.length === 0}
+                onClick={regenerateAllArtifacts}
+              >
+                Regenerate All Artifacts
+              </button>
+            <button
+              type="button"
+              className="downloadButton"
+              disabled={busy || requirements.length === 0}
+              onClick={downloadReadinessMatrix}
+            >
+              Export Readiness Matrix
+            </button>
+
+            <button
+              type="button"
+              className="downloadButton secondaryDownload"
+              disabled={busy || safeProposalOutline.length === 0}
+              onClick={downloadProposalDraft}
+            >
+              Export Proposal Draft
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div className="summaryPanel">
+        <h3>Documents</h3>
+        <div className="compactDocList">
+          {documents.map((doc) => (
+            <div className="docChip" key={doc.id}>
+              <strong>{doc.filename}</strong>
+              <span>
+                {doc.page_count} page(s) · {doc.processing_status} · {Math.round(doc.file_size / 1024)} KB
+              </span>
+            </div>
+          ))}
+          {documents.length === 0 && <p className="empty">No RFP documents uploaded yet.</p>}
+        </div>
+      </div>
+
+      {!selectedProject && <p className="empty">Select or create a bid project to start.</p>}
+    </div>
+  );
+}
+
+function ExecutiveDashboardCard({
+  readinessSummary,
+  decisionGate,
+  requirements = [],
+  clarifications = [],
+  responsePlan = [],
+  proposalOutline = [],
+  evidencePack = [],
+}) {
+  const highRiskRequirements = requirements.filter((item) => item.risk_level === "high").length;
+  const needsReviewRequirements = requirements.filter((item) => item.status === "needs_review").length;
+  const openClarifications = clarifications.filter((item) => item.status === "open").length;
+  const highPriorityClarifications = clarifications.filter((item) => item.priority === "high").length;
+  const openEvidence = evidencePack.filter((item) => ["open", "requested"].includes(item.status)).length;
+  const highPriorityEvidence = evidencePack.filter((item) => item.priority === "high" && ["open", "requested"].includes(item.status)).length;
+  const readyProposalSections = proposalOutline.filter((item) => ["ready", "approved"].includes(item.status)).length;
+  const blockedResponseItems = responsePlan.filter((item) => item.status === "blocked" || item.compliance_status === "blocked").length;
+
+  const readinessScore = decisionGate?.readiness_score ?? readinessSummary?.readiness_score ?? 0;
+  const recommendation = decisionGate?.recommendation || readinessSummary?.recommendation || "No executive decision generated yet";
+  const decisionStatus = decisionGate?.decision_status || "not_generated";
+
+  const topBlockers = decisionGate?.blockers?.length
+    ? decisionGate.blockers.slice(0, 3)
+    : [
+        highRiskRequirements ? `${highRiskRequirements} high-risk requirement(s) need review.` : null,
+        openClarifications ? `${openClarifications} clarification question(s) are still open.` : null,
+        highPriorityEvidence ? `${highPriorityEvidence} high-priority evidence item(s) are still open/requested.` : null,
+      ].filter(Boolean);
+
+  const nextActions = decisionGate?.next_actions?.length
+    ? decisionGate.next_actions.slice(0, 4)
+    : [
+        needsReviewRequirements ? "Complete requirement owner review." : null,
+        openClarifications ? "Resolve open clarification questions." : null,
+        openEvidence ? "Collect and validate evidence pack items." : null,
+        proposalOutline.length ? "Move proposal sections to ready/approved." : "Generate proposal outline.",
+      ].filter(Boolean);
+
+  return (
+    <div className="executiveDashboardCard">
+      <div className="executiveDashboardHeader">
+        <div>
+          <p className="eyebrow dark">Executive Dashboard</p>
+          <h2>{recommendation}</h2>
+          <p className="muted">
+            One-page bid health view for owner review, approval, and next-action alignment.
+          </p>
+        </div>
+
+        <div className={`executiveDecisionPill ${decisionStatus}`}>
+          <span>Decision</span>
+          <strong>{decisionStatus}</strong>
+        </div>
+      </div>
+
+      <div className="executiveScoreRow">
+        <div className="executiveScoreMain">
+          <span>Readiness Score</span>
+          <strong>{readinessScore}</strong>
+          <small>{readinessSummary?.recommendation || "Readiness summary unavailable"}</small>
+        </div>
+
+        <ExecutiveMetric label="High Risk Req." value={highRiskRequirements} tone={highRiskRequirements ? "danger" : "ok"} />
+        <ExecutiveMetric label="Needs Review" value={needsReviewRequirements} tone={needsReviewRequirements ? "warning" : "ok"} />
+        <ExecutiveMetric label="Open Clarifications" value={openClarifications} tone={openClarifications ? "warning" : "ok"} />
+        <ExecutiveMetric label="High Priority Evidence" value={highPriorityEvidence} tone={highPriorityEvidence ? "danger" : "ok"} />
+        <ExecutiveMetric label="Blocked Responses" value={blockedResponseItems} tone={blockedResponseItems ? "danger" : "ok"} />
+      </div>
+
+      <div className="executivePipeline">
+        <ExecutiveStage label="Requirements" value={requirements.length} />
+        <ExecutiveStage label="Clarifications" value={clarifications.length} />
+        <ExecutiveStage label="Response Plan" value={responsePlan.length} />
+        <ExecutiveStage label="Proposal Sections" value={`${readyProposalSections}/${proposalOutline.length}`} />
+        <ExecutiveStage label="Evidence Pack" value={evidencePack.length} />
+      </div>
+
+      <div className="executiveInsightGrid">
+        <div className="executiveInsightBox danger">
+          <h3>Top Blockers</h3>
+          {topBlockers.length ? (
+            <ul>
+              {topBlockers.map((item, index) => (
+                <li key={`blocker-${index}`}>{item}</li>
+              ))}
+            </ul>
+          ) : (
+            <p className="muted">No major blocker detected.</p>
+          )}
+        </div>
+
+        <div className="executiveInsightBox">
+          <h3>Next Actions</h3>
+          {nextActions.length ? (
+            <ul>
+              {nextActions.map((item, index) => (
+                <li key={`action-${index}`}>{item}</li>
+              ))}
+            </ul>
+          ) : (
+            <p className="muted">No pending action detected.</p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ExecutiveMetric({ label, value, tone = "neutral" }) {
+  return (
+    <div className={`executiveMetric ${tone}`}>
+      <strong>{value}</strong>
+      <span>{label}</span>
+    </div>
+  );
+}
+
+function ExecutiveStage({ label, value }) {
+  return (
+    <div className="executiveStage">
+      <span>{label}</span>
+      <strong>{value}</strong>
+    </div>
+  );
+}
+
+function DecisionGateCard({ gate, busy, generateDecisionGate, updateDecisionGate }) {
+  if (!gate) {
+    return (
+      <div className="decisionGateCard emptyDecisionGate">
+        <div className="decisionGateHeader">
+          <div>
+            <p className="eyebrow dark">Executive Decision Gate</p>
+            <h2>No decision gate generated yet</h2>
+            <p className="muted">
+              Generate a Bid / No-Bid recommendation from readiness, requirements, clarifications, response plan, proposal outline, and evidence pack.
+            </p>
+          </div>
+
+          <button type="button" className="decisionPrimaryButton" onClick={generateDecisionGate}>
+            Generate Decision Gate
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="decisionGateCard">
+      <div className="decisionGateHeader">
+        <div>
+          <p className="eyebrow dark">Executive Decision Gate</p>
+          <h2>{gate.recommendation}</h2>
+          <p className="muted">
+            Mode: {gate.generation_mode} · Confidence: {Math.round((gate.confidence || 0) * 100)}%
+          </p>
+        </div>
+
+        <div className="decisionHeaderRight">
+          <button type="button" className="decisionSecondaryButton" onClick={generateDecisionGate}>
+            Regenerate
+          </button>
+
+          <div className="decisionScoreBox">
+            <span>Readiness</span>
+            <strong>{gate.readiness_score}</strong>
+          </div>
+        </div>
+      </div>
+
+      <div className="decisionGateControls">
+        <label>
+          Decision Status
+          <select
+            value={gate.decision_status || "needs_executive_review"}
+            disabled={busy}
+            onChange={(e) => updateDecisionGate(gate.id, { decision_status: e.target.value })}
+          >
+            <option value="recommend_bid">recommend_bid</option>
+            <option value="recommend_no_bid">recommend_no_bid</option>
+            <option value="needs_executive_review">needs_executive_review</option>
+            <option value="approved_to_bid">approved_to_bid</option>
+            <option value="no_bid">no_bid</option>
+            <option value="deferred">deferred</option>
+          </select>
+        </label>
+
+        <label>
+          Owner
+          <input
+            defaultValue={gate.owner || ""}
+            disabled={busy}
+            onBlur={(e) => {
+              if (e.target.value !== (gate.owner || "")) {
+                updateDecisionGate(gate.id, { owner: e.target.value });
+              }
+            }}
+          />
+        </label>
+
+        <label>
+          Due Date
+          <input
+            defaultValue={gate.due_date || ""}
+            disabled={busy}
+            onBlur={(e) => {
+              if (e.target.value !== (gate.due_date || "")) {
+                updateDecisionGate(gate.id, { due_date: e.target.value });
+              }
+            }}
+          />
+        </label>
+
+        <span className={`decisionStatusBadge ${gate.decision_status}`}>
+          {gate.decision_status}
+        </span>
+      </div>
+
+      <div className="decisionExecutiveSummary">
+        <strong>Executive Summary</strong>
+        <p>{gate.executive_summary || "-"}</p>
+      </div>
+
+      <div className="decisionGrid">
+        <DecisionList title="Key Reasons" items={gate.key_reasons || []} />
+        <DecisionList title="Blockers" items={gate.blockers || []} danger />
+        <DecisionList title="Required Approvals" items={gate.required_approvals || []} />
+        <DecisionList title="Next Actions" items={gate.next_actions || []} />
+      </div>
+
+      <label className="decisionNotes">
+        Notes
+        <textarea
+          defaultValue={gate.notes || ""}
+          disabled={busy}
+          onBlur={(e) => {
+            if (e.target.value !== (gate.notes || "")) {
+              updateDecisionGate(gate.id, { notes: e.target.value });
+            }
+          }}
+        />
+      </label>
+    </div>
+  );
+}
+
+function DecisionList({ title, items, danger = false }) {
+  return (
+    <div className={danger ? "decisionList danger" : "decisionList"}>
+      <h3>{title}</h3>
+      {items.length === 0 ? (
+        <p className="muted">No item.</p>
+      ) : (
+        <ul>
+          {items.map((item, index) => (
+            <li key={`${title}-${index}`}>{item}</li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+function RfpMetadataCard({ metadata }) {
+  if (!metadata) {
+    return (
+      <div className="metadataCard">
+        <div className="metadataHeader">
+          <div>
+            <p className="eyebrow dark">RFP Metadata</p>
+            <h2>No metadata extracted yet</h2>
+            <p className="muted">Click Extract Metadata to identify deadline, issuer, package name, service domain, and submission requirements.</p>
+          </div>
+          <span className="metadataMode">rules_only</span>
+        </div>
+      </div>
+    );
+  }
+
+  const submissionRequirements = metadata.submission_requirements || [];
+
+  return (
+    <div className="metadataCard">
+      <div className="metadataHeader">
+        <div>
+          <p className="eyebrow dark">RFP Metadata</p>
+          <h2>{metadata.package_name || "Untitled Package"}</h2>
+          <p className="muted">
+            Extracted by {metadata.extraction_mode || "rules_only"}
+          </p>
+        </div>
+        <span className="metadataMode">{metadata.extraction_mode || "rules_only"}</span>
+      </div>
+
+      <div className="metadataGrid">
+        <MetadataField label="Issuer" value={metadata.issuer} />
+        <MetadataField label="Submission Deadline" value={metadata.submission_deadline} highlight />
+        <MetadataField label="Clarification Deadline" value={metadata.clarification_deadline} />
+        <MetadataField label="Proposal Validity" value={metadata.proposal_validity} />
+        <MetadataField label="Service Domain" value={metadata.service_domain} />
+        <MetadataField label="Notes" value={metadata.notes} />
+      </div>
+
+      <div className="metadataRequirements">
+        <h3>Submission Requirements</h3>
+        {submissionRequirements.length === 0 ? (
+          <p className="muted">No submission requirement detected yet.</p>
+        ) : (
+          <div className="metadataPills">
+            {submissionRequirements.map((item, index) => (
+              <span key={`${item}-${index}`}>{item}</span>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function MetadataField({ label, value, highlight = false }) {
+  return (
+    <div className={highlight ? "metadataField highlight" : "metadataField"}>
+      <span>{label}</span>
+      <strong>{value || "-"}</strong>
+    </div>
+  );
+}
+
+function BidBriefCard({ bidBrief }) {
+  if (!bidBrief) {
+    return (
+      <div className="bidBriefCard">
+        <div className="briefHeader">
+          <div>
+            <p className="eyebrow dark">Bid Brief</p>
+            <h2>No bid brief available yet</h2>
+          </div>
+          <span className="briefMode">rules_only</span>
+        </div>
+        <p className="muted">Analyze the RFP first to generate a rule-based executive bid brief.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bidBriefCard">
+      <div className="briefHeader">
+        <div>
+          <p className="eyebrow dark">Bid Brief</p>
+          <h2>Executive Bid Summary</h2>
+          <p className="muted">
+            Generated by {bidBrief.generated_by} · Mode: {bidBrief.ai_mode}
+          </p>
+        </div>
+        <span className="briefMode">{bidBrief.ai_mode}</span>
+      </div>
+
+      <div className="briefExecutive">
+        <strong>Executive Summary</strong>
+        <p>{bidBrief.executive_summary}</p>
+      </div>
+
+      <div className="briefGrid">
+        <BriefList title="Key Risks" items={bidBrief.key_risks || []} />
+        <BriefList title="Clarification Focus" items={bidBrief.clarification_focus || []} />
+        <BriefList title="Next Actions" items={bidBrief.next_actions || []} />
+        <BriefList title="Assumptions" items={bidBrief.assumptions || []} />
+      </div>
+    </div>
+  );
+}
+
+function BriefList({ title, items }) {
+  return (
+    <div className="briefList">
+      <h3>{title}</h3>
+      {items.length === 0 ? (
+        <p className="muted">No item available.</p>
+      ) : (
+        <ul>
+          {items.map((item, index) => (
+            <li key={`${title}-${index}`}>{item}</li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+function ReadinessSummaryCard({ summary }) {
+  if (!summary) {
+    return (
+      <div className="readinessCard summaryReadiness">
+        <div>
+          <p className="eyebrow dark">Readiness Summary</p>
+          <h2>No readiness data yet</h2>
+          <p className="muted">Upload and analyze an RFP document to generate bid readiness signals.</p>
+        </div>
+      </div>
+    );
+  }
+
+  const score = Number(summary.readiness_score || 0);
+  const scoreClass = score >= 85 ? "good" : score >= 65 ? "medium" : score >= 40 ? "warning" : "bad";
+
+  return (
+    <div className="readinessCard summaryReadiness">
+      <div className="readinessScoreBlock">
+        <p className="eyebrow dark">Readiness Summary</p>
+        <div className={`scoreCircle ${scoreClass}`}>
+          <span>{score}</span>
+          <small>/100</small>
+        </div>
+        <h2>{summary.recommendation}</h2>
+        <p className="muted">{summary.project_title}</p>
+      </div>
+
+      <div className="readinessMetrics">
+        <div>
+          <strong>{summary.requirement_count}</strong>
+          <span>Requirements</span>
+        </div>
+        <div>
+          <strong>{summary.high_risk_requirement_count}</strong>
+          <span>High Risk</span>
+        </div>
+        <div>
+          <strong>{summary.needs_review_requirement_count}</strong>
+          <span>Needs Review</span>
+        </div>
+        <div>
+          <strong>{summary.open_clarification_count}</strong>
+          <span>Open Clarifications</span>
+        </div>
+        <div>
+          <strong>{summary.blocked_requirement_count}</strong>
+          <span>Blocked</span>
+        </div>
+        <div>
+          <strong>{summary.accepted_requirement_count}</strong>
+          <span>Accepted</span>
+        </div>
+      </div>
+
+      <div className="readinessSignals">
+        <h3>Top Signals</h3>
+        <div className="signalList">
+          {(summary.signals || []).map((signal, index) => (
+            <div className={`signalItem ${signal.severity}`} key={`${signal.label}-${index}`}>
+              <strong>{signal.label}</strong>
+              <span>{signal.message}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function RequirementsView({
+  requirements,
+  selectedRequirement,
+  setSelectedRequirementId,
+  busy,
+  updateRequirement,
+  requirementEvidence,
+  bulkUpdateRequirements,
+}) {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [riskFilter, setRiskFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [bulkStatus, setBulkStatus] = useState("");
+  const [bulkRisk, setBulkRisk] = useState("");
+  const [bulkOwner, setBulkOwner] = useState("");
+  const [bulkNotes, setBulkNotes] = useState("");
+
+  const categories = Array.from(new Set(requirements.map((item) => item.category).filter(Boolean))).sort();
+
+  const filteredRequirements = requirements.filter((req) => {
+    const query = searchQuery.trim().toLowerCase();
+
+    const matchesSearch =
+      !query ||
+      req.requirement_text?.toLowerCase().includes(query) ||
+      req.category?.toLowerCase().includes(query) ||
+      req.evidence_quote?.toLowerCase().includes(query) ||
+      req.suggested_owner?.toLowerCase().includes(query) ||
+      req.status?.toLowerCase().includes(query);
+
+    const matchesRisk = riskFilter === "all" || req.risk_level === riskFilter;
+    const matchesStatus = statusFilter === "all" || req.status === statusFilter;
+    const matchesCategory = categoryFilter === "all" || req.category === categoryFilter;
+
+    return matchesSearch && matchesRisk && matchesStatus && matchesCategory;
+  });
+
+  const filteredIds = filteredRequirements.map((item) => item.id);
+  const allFilteredSelected = filteredIds.length > 0 && filteredIds.every((id) => selectedIds.includes(id));
+
+  function toggleSelected(id) {
+    setSelectedIds((current) => (
+      current.includes(id)
+        ? current.filter((item) => item !== id)
+        : [...current, id]
+    ));
+  }
+
+  function toggleSelectFiltered() {
+    setSelectedIds((current) => {
+      if (allFilteredSelected) {
+        return current.filter((id) => !filteredIds.includes(id));
+      }
+      return Array.from(new Set([...current, ...filteredIds]));
+    });
+  }
+
+  async function applyBulkUpdate() {
+    const patch = {};
+
+    if (bulkStatus) patch.status = bulkStatus;
+    if (bulkRisk) patch.risk_level = bulkRisk;
+    if (bulkOwner.trim()) patch.suggested_owner = bulkOwner.trim();
+    if (bulkNotes.trim()) patch.notes = bulkNotes.trim();
+
+    if (Object.keys(patch).length === 0) return;
+
+    await bulkUpdateRequirements(selectedIds, patch);
+    setSelectedIds([]);
+    setBulkStatus("");
+    setBulkRisk("");
+    setBulkOwner("");
+    setBulkNotes("");
+  }
+
+  return (
+    <div className="workspaceView">
+      <div className="viewHeader">
+        <div>
+          <h3>Requirements</h3>
+          <p className="muted">Review extracted requirements, evidence, owner, risk, and status.</p>
+        </div>
+        <span className="filterResultCount">
+          {filteredRequirements.length} / {requirements.length} shown
+        </span>
+      </div>
+
+      <div className="filterBar">
+        <input
+          className="filterInput"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="Search requirement, owner, evidence, or status..."
+        />
+
+        <select className="filterSelect" value={riskFilter} onChange={(e) => setRiskFilter(e.target.value)}>
+          <option value="all">All risks</option>
+          <option value="high">High risk</option>
+          <option value="medium">Medium risk</option>
+          <option value="low">Low risk</option>
+        </select>
+
+        <select className="filterSelect" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+          <option value="all">All statuses</option>
+          <option value="needs_review">needs_review</option>
+          <option value="accepted">accepted</option>
+          <option value="rejected">rejected</option>
+          <option value="done">done</option>
+          <option value="blocked">blocked</option>
+          <option value="not_applicable">not_applicable</option>
+          <option value="needs_clarification">needs_clarification</option>
+        </select>
+
+        <select className="filterSelect" value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}>
+          <option value="all">All categories</option>
+          {categories.map((category) => (
+            <option key={category} value={category}>{category}</option>
+          ))}
+        </select>
+
+        <button
+          type="button"
+          className="clearFilterButton"
+          onClick={() => {
+            setSearchQuery("");
+            setRiskFilter("all");
+            setStatusFilter("all");
+            setCategoryFilter("all");
+          }}
+        >
+          Clear
+        </button>
+      </div>
+
+      <div className="bulkActionBar">
+        <label className="bulkSelectAll">
+          <input
+            type="checkbox"
+            checked={allFilteredSelected}
+            onChange={toggleSelectFiltered}
+            disabled={filteredIds.length === 0}
+          />
+          Select filtered
+        </label>
+
+        <span className="bulkCount">{selectedIds.length} selected</span>
+
+        <select value={bulkStatus} onChange={(e) => setBulkStatus(e.target.value)}>
+          <option value="">Status...</option>
+          <option value="needs_review">needs_review</option>
+          <option value="accepted">accepted</option>
+          <option value="rejected">rejected</option>
+          <option value="done">done</option>
+          <option value="blocked">blocked</option>
+          <option value="not_applicable">not_applicable</option>
+          <option value="needs_clarification">needs_clarification</option>
+        </select>
+
+        <select value={bulkRisk} onChange={(e) => setBulkRisk(e.target.value)}>
+          <option value="">Risk...</option>
+          <option value="low">low</option>
+          <option value="medium">medium</option>
+          <option value="high">high</option>
+        </select>
+
+        <input
+          value={bulkOwner}
+          onChange={(e) => setBulkOwner(e.target.value)}
+          placeholder="Owner..."
+        />
+
+        <input
+          value={bulkNotes}
+          onChange={(e) => setBulkNotes(e.target.value)}
+          placeholder="Notes..."
+        />
+
+        <button
+          type="button"
+          disabled={busy || selectedIds.length === 0 || (!bulkStatus && !bulkRisk && !bulkOwner.trim() && !bulkNotes.trim())}
+          onClick={applyBulkUpdate}
+        >
+          Apply Bulk
+        </button>
+      </div>
+
+      <div className="reviewWorkbench">
+        <div className="reviewList">
+          {filteredRequirements.map((req) => (
+            <div
+              key={req.id}
+              className={selectedRequirement?.id === req.id ? "reviewItemWrap active" : "reviewItemWrap"}
+            >
+              <label className="rowCheck">
+                <input
+                  type="checkbox"
+                  checked={selectedIds.includes(req.id)}
+                  onChange={() => toggleSelected(req.id)}
+                />
+              </label>
+
+              <button
+                className={selectedRequirement?.id === req.id ? "reviewItem active" : "reviewItem"}
+                onClick={() => setSelectedRequirementId(req.id)}
+              >
+                <div className="reviewItemTop">
+                  <span className={`miniRisk ${req.risk_level}`}>{req.risk_level}</span>
+                  <span className="miniCategory">{req.category}</span>
+                </div>
+                <strong>{req.requirement_text}</strong>
+                <small>Page {req.source_page || "-"} · {req.status}</small>
+              </button>
+            </div>
+          ))}
+          {requirements.length === 0 && <p className="empty">No requirements analyzed yet.</p>}
+          {requirements.length > 0 && filteredRequirements.length === 0 && <p className="empty">No matching requirement.</p>}
+        </div>
+
+        <div className="detailPanel">
+          {selectedRequirement ? (
+            <RequirementDetail
+              req={selectedRequirement}
+              busy={busy}
+              updateRequirement={updateRequirement}
+              requirementEvidence={requirementEvidence}
+            />
+          ) : (
+            <p className="empty">Select a requirement.</p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ClarificationsView({
+  clarifications,
+  selectedClarification,
+  setSelectedClarificationId,
+  busy,
+  updateClarification,
+  generateClarifications,
+  requirements,
+  bulkUpdateClarifications,
+}) {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [priorityFilter, setPriorityFilter] = useState("all");
+  const [riskFilter, setRiskFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [bulkStatus, setBulkStatus] = useState("");
+  const [bulkRisk, setBulkRisk] = useState("");
+  const [bulkPriority, setBulkPriority] = useState("");
+  const [bulkOwner, setBulkOwner] = useState("");
+  const [bulkNotes, setBulkNotes] = useState("");
+
+  const categories = Array.from(new Set(clarifications.map((item) => item.category).filter(Boolean))).sort();
+
+  const filteredClarifications = clarifications.filter((q) => {
+    const query = searchQuery.trim().toLowerCase();
+
+    const matchesSearch =
+      !query ||
+      q.question_text?.toLowerCase().includes(query) ||
+      q.reason?.toLowerCase().includes(query) ||
+      q.category?.toLowerCase().includes(query) ||
+      q.owner?.toLowerCase().includes(query) ||
+      q.status?.toLowerCase().includes(query);
+
+    const matchesPriority = priorityFilter === "all" || q.priority === priorityFilter;
+    const matchesRisk = riskFilter === "all" || q.risk_level === riskFilter;
+    const matchesStatus = statusFilter === "all" || q.status === statusFilter;
+    const matchesCategory = categoryFilter === "all" || q.category === categoryFilter;
+
+    return matchesSearch && matchesPriority && matchesRisk && matchesStatus && matchesCategory;
+  });
+
+  const filteredIds = filteredClarifications.map((item) => item.id);
+  const allFilteredSelected = filteredIds.length > 0 && filteredIds.every((id) => selectedIds.includes(id));
+
+  function toggleSelected(id) {
+    setSelectedIds((current) => (
+      current.includes(id)
+        ? current.filter((item) => item !== id)
+        : [...current, id]
+    ));
+  }
+
+  function toggleSelectFiltered() {
+    setSelectedIds((current) => {
+      if (allFilteredSelected) {
+        return current.filter((id) => !filteredIds.includes(id));
+      }
+      return Array.from(new Set([...current, ...filteredIds]));
+    });
+  }
+
+  async function applyBulkUpdate() {
+    const patch = {};
+
+    if (bulkStatus) patch.status = bulkStatus;
+    if (bulkRisk) patch.risk_level = bulkRisk;
+    if (bulkPriority) patch.priority = bulkPriority;
+    if (bulkOwner.trim()) patch.owner = bulkOwner.trim();
+    if (bulkNotes.trim()) patch.notes = bulkNotes.trim();
+
+    if (Object.keys(patch).length === 0) return;
+
+    await bulkUpdateClarifications(selectedIds, patch);
+    setSelectedIds([]);
+    setBulkStatus("");
+    setBulkRisk("");
+    setBulkPriority("");
+    setBulkOwner("");
+    setBulkNotes("");
+  }
+
+  return (
+    <div className="workspaceView">
+      <div className="viewHeader">
+        <div>
+          <h3>Clarifications</h3>
+          <p className="muted">Manage clarification questions generated from high-risk and ambiguous requirements.</p>
+        </div>
+        <div className="viewHeaderActions">
+          <span className="filterResultCount">
+            {filteredClarifications.length} / {clarifications.length} shown
+          </span>
+          <button disabled={busy || requirements.length === 0} onClick={generateClarifications}>
+            Generate Clarifications
+          </button>
+        </div>
+      </div>
+
+      <div className="filterBar clarificationFilterBar">
+        <input
+          className="filterInput"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="Search question, owner, reason, category, or status..."
+        />
+
+        <select className="filterSelect" value={priorityFilter} onChange={(e) => setPriorityFilter(e.target.value)}>
+          <option value="all">All priorities</option>
+          <option value="high">High priority</option>
+          <option value="medium">Medium priority</option>
+          <option value="low">Low priority</option>
+        </select>
+
+        <select className="filterSelect" value={riskFilter} onChange={(e) => setRiskFilter(e.target.value)}>
+          <option value="all">All risks</option>
+          <option value="high">High risk</option>
+          <option value="medium">Medium risk</option>
+          <option value="low">Low risk</option>
+        </select>
+
+        <select className="filterSelect" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+          <option value="all">All statuses</option>
+          <option value="open">open</option>
+          <option value="needs_internal_review">needs_internal_review</option>
+          <option value="answered">answered</option>
+          <option value="closed">closed</option>
+          <option value="cancelled">cancelled</option>
+        </select>
+
+        <select className="filterSelect" value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}>
+          <option value="all">All categories</option>
+          {categories.map((category) => (
+            <option key={category} value={category}>{category}</option>
+          ))}
+        </select>
+
+        <button
+          type="button"
+          className="clearFilterButton"
+          onClick={() => {
+            setSearchQuery("");
+            setPriorityFilter("all");
+            setRiskFilter("all");
+            setStatusFilter("all");
+            setCategoryFilter("all");
+          }}
+        >
+          Clear
+        </button>
+      </div>
+
+      <div className="bulkActionBar clarificationBulkBar">
+        <label className="bulkSelectAll">
+          <input
+            type="checkbox"
+            checked={allFilteredSelected}
+            onChange={toggleSelectFiltered}
+            disabled={filteredIds.length === 0}
+          />
+          Select filtered
+        </label>
+
+        <span className="bulkCount">{selectedIds.length} selected</span>
+
+        <select value={bulkStatus} onChange={(e) => setBulkStatus(e.target.value)}>
+          <option value="">Status...</option>
+          <option value="open">open</option>
+          <option value="needs_internal_review">needs_internal_review</option>
+          <option value="answered">answered</option>
+          <option value="closed">closed</option>
+          <option value="cancelled">cancelled</option>
+        </select>
+
+        <select value={bulkRisk} onChange={(e) => setBulkRisk(e.target.value)}>
+          <option value="">Risk...</option>
+          <option value="low">low</option>
+          <option value="medium">medium</option>
+          <option value="high">high</option>
+        </select>
+
+        <select value={bulkPriority} onChange={(e) => setBulkPriority(e.target.value)}>
+          <option value="">Priority...</option>
+          <option value="low">low</option>
+          <option value="medium">medium</option>
+          <option value="high">high</option>
+        </select>
+
+        <input
+          value={bulkOwner}
+          onChange={(e) => setBulkOwner(e.target.value)}
+          placeholder="Owner..."
+        />
+
+        <input
+          value={bulkNotes}
+          onChange={(e) => setBulkNotes(e.target.value)}
+          placeholder="Notes..."
+        />
+
+        <button
+          type="button"
+          disabled={busy || selectedIds.length === 0 || (!bulkStatus && !bulkRisk && !bulkPriority && !bulkOwner.trim() && !bulkNotes.trim())}
+          onClick={applyBulkUpdate}
+        >
+          Apply Bulk
+        </button>
+      </div>
+
+      <div className="reviewWorkbench">
+        <div className="reviewList">
+          {filteredClarifications.map((q) => (
+            <div
+              key={q.id}
+              className={selectedClarification?.id === q.id ? "reviewItemWrap active" : "reviewItemWrap"}
+            >
+              <label className="rowCheck">
+                <input
+                  type="checkbox"
+                  checked={selectedIds.includes(q.id)}
+                  onChange={() => toggleSelected(q.id)}
+                />
+              </label>
+
+              <button
+                className={selectedClarification?.id === q.id ? "reviewItem active" : "reviewItem"}
+                onClick={() => setSelectedClarificationId(q.id)}
+              >
+                <div className="reviewItemTop">
+                  <span className={`miniRisk ${q.risk_level}`}>{q.risk_level}</span>
+                  <span className={`miniPriority ${q.priority}`}>{q.priority}</span>
+                </div>
+                <strong>{q.question_text}</strong>
+                <small>{q.category} · {q.status}</small>
+              </button>
+            </div>
+          ))}
+          {clarifications.length === 0 && <p className="empty">No clarification questions generated yet.</p>}
+          {clarifications.length > 0 && filteredClarifications.length === 0 && <p className="empty">No matching clarification.</p>}
+        </div>
+
+        <div className="detailPanel">
+          {selectedClarification ? (
+            <ClarificationDetail q={selectedClarification} busy={busy} updateClarification={updateClarification} />
+          ) : (
+            <p className="empty">Select a clarification question.</p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function RequirementDetail({ req, busy, updateRequirement, requirementEvidence }) {
+  return (
+    <div className="detailContent">
+      <div className="detailTitleRow">
+        <div>
+          <p className="eyebrow dark">Requirement #{req.id}</p>
+          <h2>{req.requirement_text}</h2>
+        </div>
+        <span className={`riskBadge ${req.risk_level}`}>{req.risk_level}</span>
+      </div>
+
+      <div className="detailMeta">
+        <span>Category: {req.category}</span>
+        <span>Priority: {req.priority}</span>
+        <span>Source page: {req.source_page || "-"}</span>
+        <span>Confidence: {req.confidence}</span>
+      </div>
+
+      {req.evidence_quote && (
+        <div className="evidenceBox">
+          <strong>Evidence Quote</strong>
+          <p>{req.evidence_quote}</p>
+        </div>
+      )}
+
+      <div className="sourceEvidenceBox">
+        <div className="sourceEvidenceHeader">
+          <div>
+            <strong>Source Evidence</strong>
+            <p>
+              {requirementEvidence?.filename || "No document filename"} · Page{" "}
+              {requirementEvidence?.source_page || req.source_page || "-"}
+            </p>
+          </div>
+        </div>
+
+        {requirementEvidence?.page_text ? (
+          <pre>{requirementEvidence.page_text}</pre>
+        ) : (
+          <p className="muted">Full page evidence is not available for this requirement.</p>
+        )}
+      </div>
+
+      <div className="detailGrid">
+        <label>
+          Risk Level
+          <select
+            value={req.risk_level || "medium"}
+            disabled={busy}
+            onChange={(e) => updateRequirement(req.id, { risk_level: e.target.value })}
+          >
+            <option value="low">low</option>
+            <option value="medium">medium</option>
+            <option value="high">high</option>
+          </select>
+        </label>
+
+        <label>
+          Status
+          <select
+            value={req.status || "needs_review"}
+            disabled={busy}
+            onChange={(e) => updateRequirement(req.id, { status: e.target.value })}
+          >
+            <option value="needs_review">needs_review</option>
+            <option value="accepted">accepted</option>
+            <option value="rejected">rejected</option>
+            <option value="done">done</option>
+            <option value="blocked">blocked</option>
+            <option value="not_applicable">not_applicable</option>
+            <option value="needs_clarification">needs_clarification</option>
+          </select>
+        </label>
+
+        <label>
+          Owner
+          <input
+            defaultValue={req.suggested_owner || ""}
+            disabled={busy}
+            onBlur={(e) => {
+              if (e.target.value !== (req.suggested_owner || "")) {
+                updateRequirement(req.id, { suggested_owner: e.target.value });
+              }
+            }}
+          />
+        </label>
+
+        <label>
+          Priority
+          <select
+            value={req.priority || "needs_review"}
+            disabled={busy}
+            onChange={(e) => updateRequirement(req.id, { priority: e.target.value })}
+          >
+            <option value="mandatory">mandatory</option>
+            <option value="optional">optional</option>
+            <option value="needs_review">needs_review</option>
+          </select>
+        </label>
+      </div>
+
+      <label className="fullField">
+        Reviewer Notes
+        <textarea
+          defaultValue={req.notes || ""}
+          disabled={busy}
+          onBlur={(e) => {
+            if (e.target.value !== (req.notes || "")) {
+              updateRequirement(req.id, { notes: e.target.value });
+            }
+          }}
+        />
+      </label>
+    </div>
+  );
+}
+
+function ClarificationDetail({ q, busy, updateClarification }) {
+  return (
+    <div className="detailContent">
+      <div className="detailTitleRow">
+        <div>
+          <p className="eyebrow dark">Clarification #{q.id}</p>
+          <h2>{q.question_text}</h2>
+        </div>
+        <span className={`riskBadge ${q.risk_level}`}>{q.risk_level}</span>
+      </div>
+
+      <div className="detailMeta">
+        <span>Category: {q.category}</span>
+        <span>Priority: {q.priority}</span>
+        <span>Source page: {q.source_page || "-"}</span>
+        <span>Status: {q.status}</span>
+      </div>
+
+      {q.reason && (
+        <div className="evidenceBox">
+          <strong>Reason</strong>
+          <p>{q.reason}</p>
+        </div>
+      )}
+
+      <div className="detailGrid">
+        <label>
+          Priority
+          <select
+            value={q.priority || "medium"}
+            disabled={busy}
+            onChange={(e) => updateClarification(q.id, { priority: e.target.value })}
+          >
+            <option value="low">low</option>
+            <option value="medium">medium</option>
+            <option value="high">high</option>
+          </select>
+        </label>
+
+        <label>
+          Risk Level
+          <select
+            value={q.risk_level || "medium"}
+            disabled={busy}
+            onChange={(e) => updateClarification(q.id, { risk_level: e.target.value })}
+          >
+            <option value="low">low</option>
+            <option value="medium">medium</option>
+            <option value="high">high</option>
+          </select>
+        </label>
+
+        <label>
+          Owner
+          <input
+            defaultValue={q.owner || ""}
+            disabled={busy}
+            onBlur={(e) => {
+              if (e.target.value !== (q.owner || "")) {
+                updateClarification(q.id, { owner: e.target.value });
+              }
+            }}
+          />
+        </label>
+
+        <label>
+          Status
+          <select
+            value={q.status || "open"}
+            disabled={busy}
+            onChange={(e) => updateClarification(q.id, { status: e.target.value })}
+          >
+            <option value="open">open</option>
+            <option value="needs_internal_review">needs_internal_review</option>
+            <option value="answered">answered</option>
+            <option value="closed">closed</option>
+            <option value="cancelled">cancelled</option>
+          </select>
+        </label>
+      </div>
+
+      <label className="fullField">
+        Notes
+        <textarea
+          defaultValue={q.notes || ""}
+          disabled={busy}
+          onBlur={(e) => {
+            if (e.target.value !== (q.notes || "")) {
+              updateClarification(q.id, { notes: e.target.value });
+            }
+          }}
+        />
+      </label>
+    </div>
+  );
+}
+
+function ResponsePlanView({
+  responsePlan,
+  selectedResponseItem,
+  setSelectedResponseItemId,
+  busy,
+  updateResponseItem,
+  generateResponsePlan,
+  requirements,
+}) {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [complianceFilter, setComplianceFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [categoryFilter, setCategoryFilter] = useState("all");
+
+  const categories = Array.from(new Set(responsePlan.map((item) => item.category).filter(Boolean))).sort();
+
+  const filteredItems = responsePlan.filter((item) => {
+    const query = searchQuery.trim().toLowerCase();
+
+    const matchesSearch =
+      !query ||
+      item.requirement_text?.toLowerCase().includes(query) ||
+      item.draft_response?.toLowerCase().includes(query) ||
+      item.response_strategy?.toLowerCase().includes(query) ||
+      item.category?.toLowerCase().includes(query) ||
+      item.owner?.toLowerCase().includes(query) ||
+      item.status?.toLowerCase().includes(query) ||
+      item.compliance_status?.toLowerCase().includes(query);
+
+    const matchesCompliance = complianceFilter === "all" || item.compliance_status === complianceFilter;
+    const matchesStatus = statusFilter === "all" || item.status === statusFilter;
+    const matchesCategory = categoryFilter === "all" || item.category === categoryFilter;
+
+    return matchesSearch && matchesCompliance && matchesStatus && matchesCategory;
+  });
+
+  return (
+    <div className="workspaceView">
+      <div className="viewHeader">
+        <div>
+          <h3>Response Plan</h3>
+          <p className="muted">Convert reviewed requirements into compliance status, response strategy, draft response, and evidence checklist.</p>
+        </div>
+        <div className="viewHeaderActions">
+          <span className="filterResultCount">
+            {filteredItems.length} / {responsePlan.length} shown
+          </span>
+          <button disabled={busy || requirements.length === 0} onClick={generateResponsePlan}>
+            Generate Response Plan
+          </button>
+        </div>
+      </div>
+
+      <div className="filterBar responsePlanFilterBar">
+        <input
+          className="filterInput"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="Search requirement, draft response, owner, category, or compliance..."
+        />
+
+        <select className="filterSelect" value={complianceFilter} onChange={(e) => setComplianceFilter(e.target.value)}>
+          <option value="all">All compliance</option>
+          <option value="likely_compliant">likely_compliant</option>
+          <option value="partially_compliant">partially_compliant</option>
+          <option value="non_compliant">non_compliant</option>
+          <option value="needs_review">needs_review</option>
+          <option value="needs_clarification">needs_clarification</option>
+          <option value="blocked">blocked</option>
+        </select>
+
+        <select className="filterSelect" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+          <option value="all">All statuses</option>
+          <option value="draft">draft</option>
+          <option value="in_review">in_review</option>
+          <option value="ready">ready</option>
+          <option value="approved">approved</option>
+          <option value="blocked">blocked</option>
+        </select>
+
+        <select className="filterSelect" value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}>
+          <option value="all">All categories</option>
+          {categories.map((category) => (
+            <option key={category} value={category}>{category}</option>
+          ))}
+        </select>
+
+        <button
+          type="button"
+          className="clearFilterButton"
+          onClick={() => {
+            setSearchQuery("");
+            setComplianceFilter("all");
+            setStatusFilter("all");
+            setCategoryFilter("all");
+          }}
+        >
+          Clear
+        </button>
+      </div>
+
+      <div className="reviewWorkbench">
+        <div className="reviewList">
+          {filteredItems.map((item) => (
+            <button
+              key={item.id}
+              className={selectedResponseItem?.id === item.id ? "reviewItem active" : "reviewItem"}
+              onClick={() => setSelectedResponseItemId(item.id)}
+            >
+              <div className="reviewItemTop">
+                <span className={`miniCompliance ${item.compliance_status}`}>{item.compliance_status}</span>
+                <span className="miniCategory">{item.category}</span>
+              </div>
+              <strong>{item.requirement_text}</strong>
+              <small>{item.owner || "No owner"} · {item.status}</small>
+            </button>
+          ))}
+          {responsePlan.length === 0 && <p className="empty">No response plan generated yet.</p>}
+          {responsePlan.length > 0 && filteredItems.length === 0 && <p className="empty">No matching response item.</p>}
+        </div>
+
+        <div className="detailPanel">
+          {selectedResponseItem ? (
+            <ResponseItemDetail
+              item={selectedResponseItem}
+              busy={busy}
+              updateResponseItem={updateResponseItem}
+            />
+          ) : (
+            <p className="empty">Select a response item.</p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ResponseItemDetail({ item, busy, updateResponseItem }) {
+  return (
+    <div className="detailContent responseDetail">
+      <div className="detailTitleRow">
+        <div>
+          <p className="eyebrow dark">Response Item #{item.id}</p>
+          <h2>{item.requirement_text}</h2>
+        </div>
+        <span className={`responseBadge ${item.compliance_status}`}>{item.compliance_status}</span>
+      </div>
+
+      <div className="detailMeta">
+        <span>Category: {item.category}</span>
+        <span>Status: {item.status}</span>
+        <span>Owner: {item.owner || "-"}</span>
+        <span>Source page: {item.source_page || "-"}</span>
+        <span>Mode: {item.generation_mode}</span>
+      </div>
+
+      {item.evidence_quote && (
+        <div className="evidenceBox">
+          <strong>Requirement Evidence</strong>
+          <p>{item.evidence_quote}</p>
+        </div>
+      )}
+
+      <div className="detailGrid">
+        <label>
+          Compliance
+          <select
+            value={item.compliance_status || "needs_review"}
+            disabled={busy}
+            onChange={(e) => updateResponseItem(item.id, { compliance_status: e.target.value })}
+          >
+            <option value="likely_compliant">likely_compliant</option>
+            <option value="partially_compliant">partially_compliant</option>
+            <option value="non_compliant">non_compliant</option>
+            <option value="needs_review">needs_review</option>
+            <option value="needs_clarification">needs_clarification</option>
+            <option value="blocked">blocked</option>
+          </select>
+        </label>
+
+        <label>
+          Status
+          <select
+            value={item.status || "draft"}
+            disabled={busy}
+            onChange={(e) => updateResponseItem(item.id, { status: e.target.value })}
+          >
+            <option value="draft">draft</option>
+            <option value="in_review">in_review</option>
+            <option value="ready">ready</option>
+            <option value="approved">approved</option>
+            <option value="blocked">blocked</option>
+          </select>
+        </label>
+
+        <label>
+          Owner
+          <input
+            defaultValue={item.owner || ""}
+            disabled={busy}
+            onBlur={(e) => {
+              if (e.target.value !== (item.owner || "")) {
+                updateResponseItem(item.id, { owner: e.target.value });
+              }
+            }}
+          />
+        </label>
+
+        <label>
+          Confidence
+          <input value={item.confidence} disabled readOnly />
+        </label>
+      </div>
+
+      <label className="fullField">
+        Response Strategy
+        <textarea
+          defaultValue={item.response_strategy || ""}
+          disabled={busy}
+          onBlur={(e) => {
+            if (e.target.value !== (item.response_strategy || "")) {
+              updateResponseItem(item.id, { response_strategy: e.target.value });
+            }
+          }}
+        />
+      </label>
+
+      <label className="fullField">
+        Draft Response
+        <textarea
+          defaultValue={item.draft_response || ""}
+          disabled={busy}
+          onBlur={(e) => {
+            if (e.target.value !== (item.draft_response || "")) {
+              updateResponseItem(item.id, { draft_response: e.target.value });
+            }
+          }}
+        />
+      </label>
+
+      <div className="responseLists">
+        <ResponseList title="Evidence Needed" items={item.evidence_needed || []} />
+        <ResponseList title="Risks" items={item.risks || []} />
+        <ResponseList title="Assumptions" items={item.assumptions || []} />
+      </div>
+
+      <label className="fullField">
+        Notes
+        <textarea
+          defaultValue={item.notes || ""}
+          disabled={busy}
+          onBlur={(e) => {
+            if (e.target.value !== (item.notes || "")) {
+              updateResponseItem(item.id, { notes: e.target.value });
+            }
+          }}
+        />
+      </label>
+    </div>
+  );
+}
+
+function ResponseList({ title, items }) {
+  return (
+    <div className="responseListBox">
+      <h3>{title}</h3>
+      {items.length === 0 ? (
+        <p className="muted">No item.</p>
+      ) : (
+        <ul>
+          {items.map((item, index) => (
+            <li key={`${title}-${index}`}>{item}</li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+function ProposalOutlineView({
+  proposalOutline,
+  selectedProposalSection,
+  setSelectedProposalSectionId,
+  busy,
+  updateProposalSection,
+  generateProposalOutline,
+  responsePlan,
+  downloadProposalDraft,
+}) {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [ownerFilter, setOwnerFilter] = useState("all");
+
+  const owners = Array.from(new Set(proposalOutline.map((item) => item.owner).filter(Boolean))).sort();
+
+  const filteredSections = proposalOutline.filter((section) => {
+    const query = searchQuery.trim().toLowerCase();
+
+    const matchesSearch =
+      !query ||
+      section.title?.toLowerCase().includes(query) ||
+      section.purpose?.toLowerCase().includes(query) ||
+      section.draft_content?.toLowerCase().includes(query) ||
+      section.owner?.toLowerCase().includes(query) ||
+      section.status?.toLowerCase().includes(query) ||
+      (section.content_outline || []).join(" ").toLowerCase().includes(query);
+
+    const matchesStatus = statusFilter === "all" || section.status === statusFilter;
+    const matchesOwner = ownerFilter === "all" || section.owner === ownerFilter;
+
+    return matchesSearch && matchesStatus && matchesOwner;
+  });
+
+  return (
+    <div className="workspaceView">
+      <div className="viewHeader">
+        <div>
+          <h3>Proposal Outline</h3>
+          <p className="muted">Build an editable proposal structure from the response plan, evidence checklist, risks, and owners.</p>
+        </div>
+        <div className="viewHeaderActions">
+          <span className="filterResultCount">
+            {filteredSections.length} / {proposalOutline.length} shown
+          </span>
+          <button disabled={busy || responsePlan.length === 0} onClick={generateProposalOutline}>
+            Generate Proposal Outline
+          </button>
+          <button disabled={busy || proposalOutline.length === 0} onClick={downloadProposalDraft}>
+            Download DOCX
+          </button>
+        </div>
+      </div>
+
+      <div className="filterBar proposalOutlineFilterBar">
+        <input
+          className="filterInput"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="Search section, purpose, draft content, owner, or status..."
+        />
+
+        <select className="filterSelect" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+          <option value="all">All statuses</option>
+          <option value="draft">draft</option>
+          <option value="in_review">in_review</option>
+          <option value="ready">ready</option>
+          <option value="approved">approved</option>
+          <option value="blocked">blocked</option>
+        </select>
+
+        <select className="filterSelect" value={ownerFilter} onChange={(e) => setOwnerFilter(e.target.value)}>
+          <option value="all">All owners</option>
+          {owners.map((owner) => (
+            <option key={owner} value={owner}>{owner}</option>
+          ))}
+        </select>
+
+        <button
+          type="button"
+          className="clearFilterButton"
+          onClick={() => {
+            setSearchQuery("");
+            setStatusFilter("all");
+            setOwnerFilter("all");
+          }}
+        >
+          Clear
+        </button>
+      </div>
+
+      <div className="reviewWorkbench proposalWorkbench">
+        <div className="reviewList">
+          {filteredSections.map((section) => (
+            <button
+              key={section.id}
+              className={selectedProposalSection?.id === section.id ? "reviewItem active proposalItem" : "reviewItem proposalItem"}
+              onClick={() => setSelectedProposalSectionId(section.id)}
+            >
+              <div className="reviewItemTop">
+                <span className="sectionOrder">{section.section_order}</span>
+                <span className={`miniProposalStatus ${section.status}`}>{section.status}</span>
+              </div>
+              <strong>{section.title}</strong>
+              <small>{section.owner || "No owner"} · {section.section_key}</small>
+            </button>
+          ))}
+          {proposalOutline.length === 0 && <p className="empty">No proposal outline generated yet.</p>}
+          {proposalOutline.length > 0 && filteredSections.length === 0 && <p className="empty">No matching proposal section.</p>}
+        </div>
+
+        <div className="detailPanel">
+          {selectedProposalSection ? (
+            <ProposalSectionDetail
+              section={selectedProposalSection}
+              busy={busy}
+              updateProposalSection={updateProposalSection}
+            />
+          ) : (
+            <p className="empty">Select a proposal section.</p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ProposalSectionDetail({ section, busy, updateProposalSection }) {
+  return (
+    <div className="detailContent proposalDetail">
+      <div className="detailTitleRow">
+        <div>
+          <p className="eyebrow dark">Proposal Section #{section.id}</p>
+          <h2>{section.title}</h2>
+        </div>
+        <span className={`proposalStatusBadge ${section.status}`}>{section.status}</span>
+      </div>
+
+      <div className="detailMeta">
+        <span>Order: {section.section_order}</span>
+        <span>Key: {section.section_key}</span>
+        <span>Owner: {section.owner || "-"}</span>
+        <span>Mode: {section.generation_mode}</span>
+      </div>
+
+      <div className="detailGrid">
+        <label>
+          Title
+          <input
+            defaultValue={section.title || ""}
+            disabled={busy}
+            onBlur={(e) => {
+              if (e.target.value !== (section.title || "")) {
+                updateProposalSection(section.id, { title: e.target.value });
+              }
+            }}
+          />
+        </label>
+
+        <label>
+          Status
+          <select
+            value={section.status || "draft"}
+            disabled={busy}
+            onChange={(e) => updateProposalSection(section.id, { status: e.target.value })}
+          >
+            <option value="draft">draft</option>
+            <option value="in_review">in_review</option>
+            <option value="ready">ready</option>
+            <option value="approved">approved</option>
+            <option value="blocked">blocked</option>
+          </select>
+        </label>
+
+        <label>
+          Owner
+          <input
+            defaultValue={section.owner || ""}
+            disabled={busy}
+            onBlur={(e) => {
+              if (e.target.value !== (section.owner || "")) {
+                updateProposalSection(section.id, { owner: e.target.value });
+              }
+            }}
+          />
+        </label>
+
+        <label>
+          Source Response Items
+          <input value={(section.source_response_item_ids || []).join(", ")} disabled readOnly />
+        </label>
+      </div>
+
+      <label className="fullField">
+        Purpose
+        <textarea
+          defaultValue={section.purpose || ""}
+          disabled={busy}
+          onBlur={(e) => {
+            if (e.target.value !== (section.purpose || "")) {
+              updateProposalSection(section.id, { purpose: e.target.value });
+            }
+          }}
+        />
+      </label>
+
+      <div className="proposalLists">
+        <ProposalList title="Content Outline" items={section.content_outline || []} />
+        <ProposalList title="Evidence Needed" items={section.evidence_needed || []} />
+        <ProposalList title="Risks" items={section.risks || []} />
+      </div>
+
+      <label className="fullField">
+        Draft Content
+        <textarea
+          defaultValue={section.draft_content || ""}
+          disabled={busy}
+          onBlur={(e) => {
+            if (e.target.value !== (section.draft_content || "")) {
+              updateProposalSection(section.id, { draft_content: e.target.value });
+            }
+          }}
+        />
+      </label>
+
+      <label className="fullField">
+        Notes
+        <textarea
+          defaultValue={section.notes || ""}
+          disabled={busy}
+          onBlur={(e) => {
+            if (e.target.value !== (section.notes || "")) {
+              updateProposalSection(section.id, { notes: e.target.value });
+            }
+          }}
+        />
+      </label>
+    </div>
+  );
+}
+
+function ProposalList({ title, items }) {
+  return (
+    <div className="proposalListBox">
+      <h3>{title}</h3>
+      {items.length === 0 ? (
+        <p className="muted">No item.</p>
+      ) : (
+        <ul>
+          {items.map((item, index) => (
+            <li key={`${title}-${index}`}>{item}</li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+function EvidencePackView({
+  evidencePack = [],
+  selectedEvidenceItem,
+  setSelectedEvidenceItemId,
+  busy,
+  updateEvidenceItem,
+  generateEvidencePack,
+  projectMetadata,
+  responsePlan = [],
+  proposalOutline = [],
+}) {
+  const safeEvidencePack = Array.isArray(evidencePack) ? evidencePack : [];
+  const safeResponsePlan = Array.isArray(responsePlan) ? responsePlan : [];
+  const safeProposalOutline = Array.isArray(proposalOutline) ? proposalOutline : [];
+
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [priorityFilter, setPriorityFilter] = useState("all");
+  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [ownerFilter, setOwnerFilter] = useState("all");
+
+  const canGenerate = Boolean(projectMetadata) || safeResponsePlan.length > 0 || safeProposalOutline.length > 0;
+
+  const owners = Array.from(
+    new Set(safeEvidencePack.map((item) => item.owner).filter(Boolean))
+  ).sort();
+
+  const categories = Array.from(
+    new Set(safeEvidencePack.map((item) => item.evidence_category).filter(Boolean))
+  ).sort();
+
+  const filteredItems = safeEvidencePack.filter((item) => {
+    const query = searchQuery.trim().toLowerCase();
+
+    const matchesSearch =
+      !query ||
+      item.evidence_name?.toLowerCase().includes(query) ||
+      item.evidence_category?.toLowerCase().includes(query) ||
+      item.owner?.toLowerCase().includes(query) ||
+      item.status?.toLowerCase().includes(query) ||
+      item.priority?.toLowerCase().includes(query) ||
+      item.notes?.toLowerCase().includes(query);
+
+    const matchesStatus = statusFilter === "all" || item.status === statusFilter;
+    const matchesPriority = priorityFilter === "all" || item.priority === priorityFilter;
+    const matchesCategory = categoryFilter === "all" || item.evidence_category === categoryFilter;
+    const matchesOwner = ownerFilter === "all" || item.owner === ownerFilter;
+
+    return matchesSearch && matchesStatus && matchesPriority && matchesCategory && matchesOwner;
+  });
+
+  const activeItem = selectedEvidenceItem || filteredItems[0] || safeEvidencePack[0] || null;
+
+  return (
+    <div className="workspaceView">
+      <div className="viewHeader">
+        <div>
+          <h3>Evidence Pack</h3>
+          <p className="muted">
+            Track supporting documents, proof, attachments, owners, status, and missing evidence for tender submission.
+          </p>
+        </div>
+
+        <div className="viewHeaderActions">
+          <span className="filterResultCount">
+            {filteredItems.length} / {safeEvidencePack.length} shown
+          </span>
+
+          <button
+            type="button"
+            disabled={busy || !canGenerate}
+            onClick={generateEvidencePack}
+          >
+            Generate Evidence Pack
+          </button>
+        </div>
+      </div>
+
+      {!canGenerate && safeEvidencePack.length === 0 && (
+        <div className="emptyStateCard">
+          <h3>Evidence Pack belum bisa dibuat</h3>
+          <p className="muted">
+            Generate metadata, response plan, atau proposal outline dulu sebelum membuat evidence pack.
+          </p>
+        </div>
+      )}
+
+      <div className="evidenceStats">
+        <EvidenceStat label="Open" value={safeEvidencePack.filter((item) => item.status === "open").length} />
+        <EvidenceStat label="Requested" value={safeEvidencePack.filter((item) => item.status === "requested").length} />
+        <EvidenceStat label="Received" value={safeEvidencePack.filter((item) => item.status === "received").length} />
+        <EvidenceStat label="Validated" value={safeEvidencePack.filter((item) => item.status === "validated").length} />
+        <EvidenceStat label="Blocked" value={safeEvidencePack.filter((item) => item.status === "blocked").length} />
+      </div>
+
+      <div className="filterBar evidencePackFilterBar">
+        <input
+          className="filterInput"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="Search evidence, category, owner, status, priority, or notes..."
+        />
+
+        <select className="filterSelect" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+          <option value="all">All statuses</option>
+          <option value="open">open</option>
+          <option value="requested">requested</option>
+          <option value="received">received</option>
+          <option value="validated">validated</option>
+          <option value="not_applicable">not_applicable</option>
+          <option value="blocked">blocked</option>
+        </select>
+
+        <select className="filterSelect" value={priorityFilter} onChange={(e) => setPriorityFilter(e.target.value)}>
+          <option value="all">All priorities</option>
+          <option value="high">high</option>
+          <option value="medium">medium</option>
+          <option value="low">low</option>
+        </select>
+
+        <select className="filterSelect" value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}>
+          <option value="all">All categories</option>
+          {categories.map((category) => (
+            <option key={category} value={category}>{category}</option>
+          ))}
+        </select>
+
+        <select className="filterSelect" value={ownerFilter} onChange={(e) => setOwnerFilter(e.target.value)}>
+          <option value="all">All owners</option>
+          {owners.map((owner) => (
+            <option key={owner} value={owner}>{owner}</option>
+          ))}
+        </select>
+
+        <button
+          type="button"
+          className="clearFilterButton"
+          onClick={() => {
+            setSearchQuery("");
+            setStatusFilter("all");
+            setPriorityFilter("all");
+            setCategoryFilter("all");
+            setOwnerFilter("all");
+          }}
+        >
+          Clear
+        </button>
+      </div>
+
+      <div className="reviewWorkbench evidenceWorkbench">
+        <div className="reviewList">
+          {filteredItems.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              className={activeItem?.id === item.id ? "reviewItem active evidenceItem" : "reviewItem evidenceItem"}
+              onClick={() => setSelectedEvidenceItemId(item.id)}
+            >
+              <div className="reviewItemTop">
+                <span className={`miniEvidencePriority ${item.priority}`}>{item.priority}</span>
+                <span className={`miniEvidenceStatus ${item.status}`}>{item.status}</span>
+              </div>
+              <strong>{item.evidence_name}</strong>
+              <small>{item.evidence_category} · {item.owner || "No owner"}</small>
+            </button>
+          ))}
+
+          {safeEvidencePack.length === 0 && (
+            <div className="emptyStateMini">
+              <strong>No evidence pack generated yet.</strong>
+              <span>Click Generate Evidence Pack to create evidence checklist.</span>
+            </div>
+          )}
+
+          {safeEvidencePack.length > 0 && filteredItems.length === 0 && (
+            <p className="empty">No matching evidence item.</p>
+          )}
+        </div>
+
+        <div className="detailPanel">
+          {activeItem ? (
+            <EvidenceItemDetail
+              item={activeItem}
+              busy={busy}
+              updateEvidenceItem={updateEvidenceItem}
+            />
+          ) : (
+            <div className="emptyStateCard">
+              <h3>Select an evidence item</h3>
+              <p className="muted">Evidence details will appear here.</p>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function EvidenceStat({ label, value }) {
+  return (
+    <div className="evidenceStat">
+      <strong>{value}</strong>
+      <span>{label}</span>
+    </div>
+  );
+}
+
+function EvidenceItemDetail({ item, busy, updateEvidenceItem }) {
+  return (
+    <div className="detailContent evidenceDetail">
+      <div className="detailTitleRow">
+        <div>
+          <p className="eyebrow dark">Evidence Item #{item.id}</p>
+          <h2>{item.evidence_name}</h2>
+        </div>
+        <span className={`evidenceStatusBadge ${item.status}`}>{item.status}</span>
+      </div>
+
+      <div className="detailMeta">
+        <span>Category: {item.evidence_category}</span>
+        <span>Priority: {item.priority}</span>
+        <span>Owner: {item.owner || "-"}</span>
+        <span>Mode: {item.generation_mode}</span>
+      </div>
+
+      <div className="detailGrid">
+        <label>
+          Evidence Name
+          <input
+            defaultValue={item.evidence_name || ""}
+            disabled={busy}
+            onBlur={(e) => {
+              if (e.target.value !== (item.evidence_name || "")) {
+                updateEvidenceItem(item.id, { evidence_name: e.target.value });
+              }
+            }}
+          />
+        </label>
+
+        <label>
+          Category
+          <input
+            defaultValue={item.evidence_category || ""}
+            disabled={busy}
+            onBlur={(e) => {
+              if (e.target.value !== (item.evidence_category || "")) {
+                updateEvidenceItem(item.id, { evidence_category: e.target.value });
+              }
+            }}
+          />
+        </label>
+
+        <label>
+          Status
+          <select
+            value={item.status || "open"}
+            disabled={busy}
+            onChange={(e) => updateEvidenceItem(item.id, { status: e.target.value })}
+          >
+            <option value="open">open</option>
+            <option value="requested">requested</option>
+            <option value="received">received</option>
+            <option value="validated">validated</option>
+            <option value="not_applicable">not_applicable</option>
+            <option value="blocked">blocked</option>
+          </select>
+        </label>
+
+        <label>
+          Priority
+          <select
+            value={item.priority || "medium"}
+            disabled={busy}
+            onChange={(e) => updateEvidenceItem(item.id, { priority: e.target.value })}
+          >
+            <option value="low">low</option>
+            <option value="medium">medium</option>
+            <option value="high">high</option>
+          </select>
+        </label>
+
+        <label>
+          Owner
+          <input
+            defaultValue={item.owner || ""}
+            disabled={busy}
+            onBlur={(e) => {
+              if (e.target.value !== (item.owner || "")) {
+                updateEvidenceItem(item.id, { owner: e.target.value });
+              }
+            }}
+          />
+        </label>
+
+        <label>
+          Source Type
+          <input value={item.source_type || "-"} disabled readOnly />
+        </label>
+      </div>
+
+      <div className="evidenceRelationGrid">
+        <RelationBox title="Requirement IDs" values={item.related_requirement_ids || []} />
+        <RelationBox title="Response Item IDs" values={item.related_response_item_ids || []} />
+        <RelationBox title="Proposal Section IDs" values={item.related_proposal_section_ids || []} />
+        <RelationBox title="Source IDs" values={item.source_ids || []} />
+      </div>
+
+      <label className="fullField">
+        Notes
+        <textarea
+          defaultValue={item.notes || ""}
+          disabled={busy}
+          onBlur={(e) => {
+            if (e.target.value !== (item.notes || "")) {
+              updateEvidenceItem(item.id, { notes: e.target.value });
+            }
+          }}
+        />
+      </label>
+    </div>
+  );
+}
+
+function RelationBox({ title, values }) {
+  return (
+    <div className="relationBox">
+      <strong>{title}</strong>
+      {values.length === 0 ? <span>-</span> : <span>{values.join(", ")}</span>}
+    </div>
+  );
+}
+
+function AuditLogView({ auditLogs }) {
+  return (
+    <div className="workspaceView">
+      <div className="viewHeader">
+        <div>
+          <h3>Audit Log</h3>
+          <p className="muted">Track who changed what, before/after values, and timestamps.</p>
+        </div>
+      </div>
+
+      <div className="auditPanel">
+        {auditLogs.length === 0 && <p className="empty">No audit logs yet.</p>}
+
+        {auditLogs.map((log) => (
+          <div className="auditCard" key={log.id}>
+            <div className="auditCardHeader">
+              <div>
+                <p className="eyebrow dark">Audit #{log.id}</p>
+                <h3>{log.action}</h3>
+              </div>
+              <span className="auditActor">{log.actor || "unknown"}</span>
+            </div>
+
+            <div className="detailMeta">
+              <span>Entity: {log.entity_type}</span>
+              <span>ID: {log.entity_id || "-"}</span>
+              <span>Project: {log.project_id || "-"}</span>
+              <span>{formatWibDateTime(log.created_at)}</span>
+            </div>
+
+            <div className="auditGrid">
+              <div className="auditJson">
+                <strong>Before</strong>
+                <pre>{JSON.stringify(log.before_json || {}, null, 2)}</pre>
+              </div>
+              <div className="auditJson">
+                <strong>After</strong>
+                <pre>{JSON.stringify(log.after_json || {}, null, 2)}</pre>
+              </div>
+            </div>
+
+            {log.notes && (
+              <div className="evidenceBox">
+                <strong>Notes</strong>
+                <p>{log.notes}</p>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+createRoot(document.getElementById("root")).render(<App />);
