@@ -32,6 +32,7 @@ function App() {
   const [proposalOutline, setProposalOutline] = useState([]);
   const [evidencePack, setEvidencePack] = useState([]);
   const [decisionGate, setDecisionGate] = useState(null);
+  const [actionItems, setActionItems] = useState([]);
   const [languageSetting, setLanguageSetting] = useState({
     input_language: "auto",
     output_language: "en",
@@ -135,7 +136,7 @@ function App() {
     if (!projectId) return;
 
     try {
-      const [docs, reqs, qs, responseItems, proposalSections, evidenceItems, gate, language, audits, summary, metadata, brief] = await Promise.all([
+      const [docs, reqs, qs, responseItems, proposalSections, evidenceItems, gate, actionItemsData, language, audits, summary, metadata, brief] = await Promise.all([
         apiFetch(`/api/v1/projects/${projectId}/documents`).catch(() => []),
         apiFetch(`/api/v1/projects/${projectId}/requirements`).catch(() => []),
         apiFetch(`/api/v1/projects/${projectId}/clarifications`).catch(() => []),
@@ -143,6 +144,7 @@ function App() {
         apiFetch(`/api/v1/projects/${projectId}/proposal-outline`).catch(() => []),
         apiFetch(`/api/v1/projects/${projectId}/evidence-pack`).catch(() => []),
         apiFetch(`/api/v1/projects/${projectId}/decision-gate`).catch(() => null),
+        apiFetch(`/api/v1/projects/${projectId}/action-items`).catch(() => []),
         apiFetch(`/api/v1/projects/${projectId}/language`).catch(() => ({
           input_language: "auto",
           output_language: "en",
@@ -160,6 +162,7 @@ function App() {
       setProposalOutline(proposalSections);
       setEvidencePack(evidenceItems);
       setDecisionGate(gate);
+      setActionItems(actionItemsData || []);
       setLanguageSetting(language || { input_language: "auto", output_language: "en" });
       setAuditLogs(audits);
       setReadinessSummary(summary);
@@ -800,6 +803,59 @@ function App() {
     }
   }
 
+  async function generateActionItems() {
+    if (!selectedProjectId) {
+      setMessage("Select a bid project first.");
+      return;
+    }
+
+    setBusy(true);
+    setMessage("Generating action items...");
+
+    try {
+      const result = await apiFetch(`/api/v1/projects/${selectedProjectId}/generate-action-items`, {
+        method: "POST",
+        headers: {
+          "X-Actor": actorName,
+        },
+      });
+
+      setActionItems(result.items || []);
+      setActiveProjectView("actions");
+      setMessage(`Generated ${result.generated_count || 0} action item(s).`);
+    } catch (err) {
+      setMessage(`Generate action items failed: ${err.message}`);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function updateActionItem(itemId, patch) {
+    setBusy(true);
+    setMessage("");
+
+    try {
+      const updated = await apiFetch(`/api/v1/action-items/${itemId}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Actor": actorName,
+        },
+        body: JSON.stringify(patch),
+      });
+
+      setActionItems((items) =>
+        items.map((item) => (item.id === updated.id ? updated : item))
+      );
+
+      setMessage("Action item updated.");
+    } catch (err) {
+      setMessage(`Update action item failed: ${err.message}`);
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function regenerateAllArtifacts() {
     if (!selectedProjectId) {
       setMessage("Select a bid project first.");
@@ -971,6 +1027,10 @@ function App() {
               />
             </label>
 
+            
+
+
+
             <button disabled={busy} type="submit">
               Create Bid Project
             </button>
@@ -1128,6 +1188,15 @@ function App() {
             />
           )}
 
+          {activeProjectView === "actions" && (
+            <ActionTrackerView
+              actionItems={actionItems}
+              busy={busy}
+              generateActionItems={generateActionItems}
+              updateActionItem={updateActionItem}
+            />
+          )}
+
           {activeProjectView === "audit" && (
             <AuditLogView auditLogs={auditLogs} />
           )}
@@ -1224,15 +1293,16 @@ function formatWibDateTime(value) {
   }).format(date)} WIB`;
 }
 
-function ProjectViewTabs({ activeProjectView, setActiveProjectView }) {
+function ProjectViewTabs({ activeProjectView, setActiveProjectView, actionItems = [] }) {
   const tabs = [
-    { key: "summary", label: "Summary", icon: LayoutDashboard },
-    { key: "requirements", label: "Requirements", icon: ClipboardCheck },
-    { key: "clarifications", label: "Clarifications", icon: FileQuestion },
-    { key: "response", label: "Response Plan", icon: FileText },
-    { key: "proposal", label: "Proposal Outline", icon: FileText },
-    { key: "evidence", label: "Evidence Pack", icon: FileText },
-    { key: "audit", label: "Audit Log", icon: History },
+    { key: "summary", label: "Summary", shortLabel: "Summary", icon: LayoutDashboard },
+    { key: "requirements", label: "Requirements", shortLabel: "Reqs", icon: ClipboardCheck },
+    { key: "clarifications", label: "Clarifications", shortLabel: "Clarify", icon: FileQuestion },
+    { key: "response", label: "Response Plan", shortLabel: "Response", icon: FileText },
+    { key: "proposal", label: "Proposal Outline", shortLabel: "Proposal", icon: FileText },
+    { key: "evidence", label: "Evidence Pack", shortLabel: "Evidence", icon: FileText },
+    { key: "actions", label: "Action Tracker", shortLabel: "Actions", icon: ClipboardCheck, badge: actionItems.length },
+    { key: "audit", label: "Audit Log", shortLabel: "Audit", icon: History },
   ];
 
   return (
@@ -1246,7 +1316,7 @@ function ProjectViewTabs({ activeProjectView, setActiveProjectView }) {
             onClick={() => setActiveProjectView(tab.key)}
           >
             <Icon size={17} />
-            {tab.label}
+            {tab.shortLabel || tab.label}
           </button>
         );
       })}
@@ -3456,6 +3526,230 @@ function RelationBox({ title, values }) {
       <strong>{title}</strong>
       {values.length === 0 ? <span>-</span> : <span>{values.join(", ")}</span>}
     </div>
+  );
+}
+
+function ActionTrackerView({
+  actionItems = [],
+  busy,
+  generateActionItems,
+  updateActionItem,
+}) {
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [priorityFilter, setPriorityFilter] = useState("all");
+  const [ownerFilter, setOwnerFilter] = useState("all");
+  const [sourceFilter, setSourceFilter] = useState("all");
+
+  const safeItems = Array.isArray(actionItems) ? actionItems : [];
+
+  const owners = useMemo(
+    () => Array.from(new Set(safeItems.map((item) => item.owner).filter(Boolean))).sort(),
+    [safeItems]
+  );
+
+  const sources = useMemo(
+    () => Array.from(new Set(safeItems.map((item) => item.source_type).filter(Boolean))).sort(),
+    [safeItems]
+  );
+
+  const filteredItems = safeItems.filter((item) => {
+    if (statusFilter !== "all" && item.status !== statusFilter) return false;
+    if (priorityFilter !== "all" && item.priority !== priorityFilter) return false;
+    if (ownerFilter !== "all" && item.owner !== ownerFilter) return false;
+    if (sourceFilter !== "all" && item.source_type !== sourceFilter) return false;
+    return true;
+  });
+
+  const counts = {
+    open: safeItems.filter((item) => item.status === "open").length,
+    inProgress: safeItems.filter((item) => item.status === "in_progress").length,
+    done: safeItems.filter((item) => item.status === "done").length,
+    blocked: safeItems.filter((item) => item.status === "blocked").length,
+    high: safeItems.filter((item) => item.priority === "high").length,
+  };
+
+  return (
+    <div className="workspaceView actionTrackerView">
+      <div className="viewHeader actionTrackerHeader">
+        <div>
+          <p className="eyebrow">Action Tracker</p>
+          <h2>Operational task list for bid execution</h2>
+          <p className="muted">
+            Generated from high-risk requirements, open clarifications, response plan, evidence pack, and decision gate actions.
+          </p>
+        </div>
+
+        <button
+          type="button"
+          className="regenerateAllButton"
+          disabled={busy}
+          onClick={generateActionItems}
+        >
+          Generate Action Items
+        </button>
+      </div>
+
+      <div className="actionStatGrid">
+        <ActionStat label="Total" value={safeItems.length} />
+        <ActionStat label="Open" value={counts.open} tone="warning" />
+        <ActionStat label="In Progress" value={counts.inProgress} />
+        <ActionStat label="Done" value={counts.done} tone="ok" />
+        <ActionStat label="Blocked" value={counts.blocked} tone="danger" />
+        <ActionStat label="High Priority" value={counts.high} tone="danger" />
+      </div>
+
+      <div className="actionFilterBar">
+        <label>
+          Status
+          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+            <option value="all">All status</option>
+            <option value="open">Open</option>
+            <option value="in_progress">In progress</option>
+            <option value="done">Done</option>
+            <option value="blocked">Blocked</option>
+            <option value="cancelled">Cancelled</option>
+          </select>
+        </label>
+
+        <label>
+          Priority
+          <select value={priorityFilter} onChange={(e) => setPriorityFilter(e.target.value)}>
+            <option value="all">All priority</option>
+            <option value="high">High</option>
+            <option value="medium">Medium</option>
+            <option value="low">Low</option>
+          </select>
+        </label>
+
+        <label>
+          Owner
+          <select value={ownerFilter} onChange={(e) => setOwnerFilter(e.target.value)}>
+            <option value="all">All owners</option>
+            {owners.map((owner) => (
+              <option key={owner} value={owner}>{owner}</option>
+            ))}
+          </select>
+        </label>
+
+        <label>
+          Source
+          <select value={sourceFilter} onChange={(e) => setSourceFilter(e.target.value)}>
+            <option value="all">All sources</option>
+            {sources.map((source) => (
+              <option key={source} value={source}>{source}</option>
+            ))}
+          </select>
+        </label>
+      </div>
+
+      <div className="actionTrackerMeta">
+        Showing <strong>{filteredItems.length}</strong> of <strong>{safeItems.length}</strong> action item(s)
+      </div>
+
+      {safeItems.length === 0 && (
+        <div className="emptyState actionEmptyState">
+          <h3>No action items yet</h3>
+          <p>Generate action items from the latest tender artifacts to create an operational task list.</p>
+          <button type="button" disabled={busy} onClick={generateActionItems}>
+            Generate Action Items
+          </button>
+        </div>
+      )}
+
+      {safeItems.length > 0 && filteredItems.length === 0 && (
+        <div className="emptyState actionEmptyState">
+          <h3>No matching action items</h3>
+          <p>Try adjusting the filters.</p>
+        </div>
+      )}
+
+      <div className="actionItemGrid">
+        {filteredItems.map((item) => (
+          <ActionItemCard
+            key={item.id}
+            item={item}
+            busy={busy}
+            updateActionItem={updateActionItem}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ActionStat({ label, value, tone = "neutral" }) {
+  return (
+    <div className={`actionStat ${tone}`}>
+      <strong>{value}</strong>
+      <span>{label}</span>
+    </div>
+  );
+}
+
+function ActionItemCard({ item, busy, updateActionItem }) {
+  const relatedCount =
+    (item.related_requirement_ids?.length || 0) +
+    (item.related_response_item_ids?.length || 0) +
+    (item.related_clarification_ids?.length || 0) +
+    (item.related_evidence_item_ids?.length || 0) +
+    (item.related_proposal_section_ids?.length || 0);
+
+  return (
+    <article className={`actionItemCard ${item.priority || "medium"} ${item.status || "open"}`}>
+      <div className="actionItemTop">
+        <div>
+          <span className={`priorityPill ${item.priority}`}>{item.priority}</span>
+          <span className="sourcePill">{item.source_type}</span>
+        </div>
+        <select
+          value={item.status || "open"}
+          disabled={busy}
+          onChange={(e) => updateActionItem(item.id, { status: e.target.value })}
+        >
+          <option value="open">Open</option>
+          <option value="in_progress">In progress</option>
+          <option value="done">Done</option>
+          <option value="blocked">Blocked</option>
+          <option value="cancelled">Cancelled</option>
+        </select>
+      </div>
+
+      <h3>{item.title}</h3>
+      <p>{item.description || "No description."}</p>
+
+      <div className="actionItemMetaGrid">
+        <div>
+          <span>Owner</span>
+          <strong>{item.owner || "unassigned"}</strong>
+        </div>
+        <div>
+          <span>Due Date</span>
+          <strong>{item.due_date || "not set"}</strong>
+        </div>
+        <div>
+          <span>Related</span>
+          <strong>{relatedCount}</strong>
+        </div>
+        <div>
+          <span>Source ID</span>
+          <strong>{item.source_id || "-"}</strong>
+        </div>
+      </div>
+
+      {item.notes && <p className="actionItemNotes">{item.notes}</p>}
+
+      <div className="actionQuickControls">
+        <button type="button" disabled={busy} onClick={() => updateActionItem(item.id, { status: "in_progress" })}>
+          Start
+        </button>
+        <button type="button" disabled={busy} onClick={() => updateActionItem(item.id, { status: "done" })}>
+          Mark Done
+        </button>
+        <button type="button" disabled={busy} onClick={() => updateActionItem(item.id, { status: "blocked" })}>
+          Block
+        </button>
+      </div>
+    </article>
   );
 }
 

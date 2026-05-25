@@ -396,3 +396,85 @@ class ProjectLanguageSettingResponse(BaseModel):
 class ProjectLanguageSettingUpdate(BaseModel):
     input_language: str | None = None
     output_language: str | None = None
+
+
+class ActionItemResponse(BaseModel):
+    id: int
+    project_id: int
+    title: str
+    description: str | None
+    source_type: str
+    source_id: int | None
+    related_requirement_ids: list
+    related_response_item_ids: list
+    related_clarification_ids: list
+    related_evidence_item_ids: list
+    related_proposal_section_ids: list
+    owner: str | None
+    priority: str
+    status: str
+    due_date: str | None
+    confidence: float | None
+    notes: str | None
+    generation_mode: str
+    created_at: datetime
+    updated_at: datetime | None
+
+    class Config:
+        from_attributes = True
+
+
+class ActionItemUpdate(BaseModel):
+    title: str | None = None
+    description: str | None = None
+    owner: str | None = None
+    priority: str | None = None
+    status: str | None = None
+    due_date: str | None = None
+    notes: str | None = None
+
+
+class GenerateActionItemsResponse(BaseModel):
+    generated_count: int
+    items: list[ActionItemResponse]
+
+
+class ActionItemResponse(BaseModel):
+    id: int
+    project_id: int
+    title: str
+    description: str | None
+    source_type: str
+    source_id: int | None
+    related_requirement_ids: list
+    related_response_item_ids: list
+    related_clarification_ids: list
+    related_evidence_item_ids: list
+    related_proposal_section_ids: list
+    owner: str | None
+    priority: str
+    status: str
+    due_date: str | None
+    confidence: float | None
+    notes: str | None
+    generation_mode: str
+    created_at: datetime
+    updated_at: datetime | None
+
+    class Config:
+        from_attributes = True
+
+
+class ActionItemUpdate(BaseModel):
+    title: str | None = None
+    description: str | None = None
+    owner: str | None = None
+    priority: str | None = None
+    status: str | None = None
+    due_date: str | None = None
+    notes: str | None = None
+
+
+class GenerateActionItemsResponse(BaseModel):
+    generated_count: int
+    items: list[ActionItemResponse]

@@ -3690,3 +3690,417 @@ button:hover {
   opacity: 0.55 !important;
   cursor: not-allowed !important;
 }
+
+/* ===== Action Tracker ===== */
+
+.actionTrackerHeader {
+  align-items: flex-start;
+}
+
+.actionStatGrid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.actionStat {
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 18px;
+  padding: 15px;
+}
+
+.actionStat strong {
+  display: block;
+  color: #0B1D3A;
+  font-size: 28px;
+  line-height: 1;
+}
+
+.actionStat span {
+  display: block;
+  margin-top: 7px;
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 950;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+
+.actionStat.warning {
+  background: #fffbeb;
+  border-color: #fde68a;
+}
+
+.actionStat.danger {
+  background: #fff7f7;
+  border-color: #fecaca;
+}
+
+.actionStat.ok {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+}
+
+.actionFilterBar {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 20px;
+  padding: 14px;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.actionFilterBar label {
+  display: grid;
+  gap: 6px;
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 950;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+
+.actionFilterBar select {
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+  background: white;
+  color: #0B1D3A;
+  padding: 10px 11px;
+  font-weight: 800;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+.actionTrackerMeta {
+  color: #64748b;
+  font-size: 13px;
+}
+
+.actionItemGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.actionItemCard {
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-left: 5px solid #94a3b8;
+  border-radius: 22px;
+  padding: 18px;
+  display: grid;
+  gap: 12px;
+  box-shadow: 0 12px 26px rgba(15, 23, 42, 0.05);
+}
+
+.actionItemCard.high {
+  border-left-color: #ef4444;
+}
+
+.actionItemCard.medium {
+  border-left-color: #f59e0b;
+}
+
+.actionItemCard.low {
+  border-left-color: #22c55e;
+}
+
+.actionItemCard.done {
+  opacity: 0.72;
+}
+
+.actionItemTop {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+}
+
+.actionItemTop > div {
+  display: flex;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+
+.actionItemTop select {
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+  background: #f8fafc;
+  padding: 8px 10px;
+  color: #0B1D3A;
+  font-weight: 800;
+}
+
+.priorityPill,
+.sourcePill {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 6px 9px;
+  font-size: 10px;
+  font-weight: 950;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.priorityPill.high {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.priorityPill.medium {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.priorityPill.low {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.sourcePill {
+  background: #e0f2fe;
+  color: #075985;
+}
+
+.actionItemCard h3 {
+  color: #0B1D3A;
+  line-height: 1.25;
+}
+
+.actionItemCard p {
+  color: #475569;
+  line-height: 1.5;
+}
+
+.actionItemMetaGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.actionItemMetaGrid div {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 10px;
+}
+
+.actionItemMetaGrid span {
+  display: block;
+  color: #64748b;
+  font-size: 10px;
+  font-weight: 950;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.actionItemMetaGrid strong {
+  display: block;
+  margin-top: 4px;
+  color: #0B1D3A;
+  font-size: 12px;
+  word-break: break-word;
+}
+
+.actionItemNotes {
+  background: #f8fafc;
+  border-radius: 14px;
+  padding: 10px 12px;
+  color: #64748b !important;
+  font-size: 13px;
+}
+
+.actionQuickControls {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.actionQuickControls button {
+  border: 1px solid #dbe3ee;
+  background: #f8fafc;
+  color: #0B1D3A;
+  border-radius: 12px;
+  padding: 9px 11px;
+  font-weight: 900;
+}
+
+.actionQuickControls button:hover:not(:disabled) {
+  background: #eef6ff;
+}
+
+.actionEmptyState {
+  border: 1px dashed #cbd5e1;
+}
+
+@media (max-width: 1180px) {
+  .actionStatGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .actionItemGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .actionFilterBar {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .actionStatGrid,
+  .actionFilterBar,
+  .actionItemMetaGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ===== Project Tab Badge ===== */
+
+.projectTab .tabBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: rgba(11, 29, 58, 0.10);
+  color: #0B1D3A;
+  font-size: 11px;
+  font-weight: 950;
+  line-height: 1;
+}
+
+.projectTab.active .tabBadge {
+  background: rgba(255, 255, 255, 0.20);
+  color: white;
+}
+
+/* ===== Compact Workspace Tabs ===== */
+
+.projectTabs {
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  align-items: center !important;
+  gap: 8px !important;
+  padding: 8px !important;
+  min-height: 66px !important;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  scrollbar-width: thin;
+}
+
+.projectTabs::-webkit-scrollbar {
+  height: 6px;
+}
+
+.projectTabs::-webkit-scrollbar-thumb {
+  background: rgba(100, 116, 139, 0.28);
+  border-radius: 999px;
+}
+
+.projectTab {
+  flex: 1 1 0 !important;
+  min-width: 104px !important;
+  min-height: 50px !important;
+  padding: 9px 10px !important;
+  border-radius: 16px !important;
+  display: inline-flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 7px !important;
+  white-space: nowrap !important;
+  line-height: 1 !important;
+}
+
+.projectTab svg {
+  width: 16px !important;
+  height: 16px !important;
+  flex-shrink: 0 !important;
+}
+
+.projectTab span {
+  display: inline-block !important;
+  font-size: 13px !important;
+  font-weight: 950 !important;
+  line-height: 1 !important;
+}
+
+.projectTab .tabBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 20px;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: rgba(11, 29, 58, 0.10);
+  color: #0B1D3A;
+  font-size: 10px;
+  font-weight: 950;
+  line-height: 1;
+}
+
+.projectTab.active .tabBadge {
+  background: rgba(255, 255, 255, 0.22);
+  color: white;
+}
+
+@media (max-width: 1100px) {
+  .projectTab {
+    flex: 0 0 auto !important;
+    min-width: 112px !important;
+  }
+}
+
+/* ===== Action Tracker Polish ===== */
+
+.actionTrackerView .viewHeader {
+  background:
+    radial-gradient(circle at top right, rgba(0, 168, 142, 0.12), transparent 32%),
+    #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 22px;
+  padding: 18px;
+  margin-bottom: 14px;
+}
+
+.actionTrackerView .viewHeader h2 {
+  letter-spacing: -0.025em;
+}
+
+.actionStatGrid {
+  margin-bottom: 14px;
+}
+
+.actionFilterBar {
+  margin-bottom: 10px;
+}
+
+.actionItemGrid {
+  grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)) !important;
+}
+
+.actionItemCard {
+  border-left-width: 4px !important;
+  border-radius: 20px !important;
+  padding: 16px !important;
+}
+
+.actionItemCard h3 {
+  font-size: 18px !important;
+  line-height: 1.28 !important;
+}
+
+.actionItemCard p {
+  font-size: 14px !important;
+}
+
+.actionQuickControls button {
+  min-height: 36px;
+}
