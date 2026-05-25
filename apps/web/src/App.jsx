@@ -35,6 +35,7 @@ import { apiFetch } from "./api/client.js";
 import { useAuthSession } from "./hooks/useAuthSession.js";
 import { useActorName } from "./hooks/useActorName.js";
 import { useTenderDownloads } from "./hooks/useTenderDownloads.js";
+import { useTenderSimpleUpdates } from "./hooks/useTenderSimpleUpdates.js";
 
 const emptyProjectForm = {
   title: "",
@@ -104,6 +105,18 @@ function App() {
     proposalOutline,
     setBusy,
     setMessage,
+  });
+
+  const {
+    updateRequirement,
+    updateClarification,
+  } = useTenderSimpleUpdates({
+    selectedProjectId,
+    setBusy,
+    setMessage,
+    setSelectedRequirementId,
+    setSelectedClarificationId,
+    loadProjectData,
   });
 
   const selectedProject = useMemo(() => {
@@ -379,58 +392,6 @@ useEffect(() => {
       setMessage(`Generated ${generated.length} clarification question(s).`);
     } catch (err) {
       setMessage(`Generate clarification failed: ${err.message}`);
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function updateRequirement(requirementId, patch) {
-    if (!selectedProjectId) return;
-
-    setBusy(true);
-    setMessage("");
-
-    try {
-      await apiFetch(`/api/v1/requirements/${requirementId}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Actor": actorName,
-        },
-        body: JSON.stringify(patch),
-      });
-
-      await loadProjectData(selectedProjectId);
-      setSelectedRequirementId(requirementId);
-      setMessage(`Requirement #${requirementId} updated.`);
-    } catch (err) {
-      setMessage(`Update failed: ${err.message}`);
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function updateClarification(questionId, patch) {
-    if (!selectedProjectId) return;
-
-    setBusy(true);
-    setMessage("");
-
-    try {
-      await apiFetch(`/api/v1/clarifications/${questionId}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Actor": actorName,
-        },
-        body: JSON.stringify(patch),
-      });
-
-      await loadProjectData(selectedProjectId);
-      setSelectedClarificationId(questionId);
-      setMessage(`Clarification question #${questionId} updated.`);
-    } catch (err) {
-      setMessage(`Clarification update failed: ${err.message}`);
     } finally {
       setBusy(false);
     }
