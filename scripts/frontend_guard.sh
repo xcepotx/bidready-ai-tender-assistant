@@ -60,18 +60,22 @@ for path in list(Path("apps/web/src").rglob("*.jsx")) + list(Path("apps/web/src"
     text = path.read_text(errors="ignore")
 
     uses_l = re.search(r"(?<![A-Za-z0-9_])L\(", text)
-    has_l = "function L(" in text or "const L =" in text
+    has_l = (
+        "function L(" in text
+        or "const L =" in text
+        or re.search(r'import\s*\{[^}]*\bL\b[^}]*\}\s*from\s*["\'][^"\']*utils/i18n\.js["\']', text)
+    )
 
     if uses_l and not has_l:
         bad.append(str(path))
 
 if bad:
-    print("Files using L(...) without local L helper:")
+    print("Files using L(...) without local or imported L helper:")
     for item in bad:
         print("-", item)
     sys.exit(1)
 
-print("✅ PASS: L helper usage is locally defined")
+print("✅ PASS: L helper usage is locally defined or imported")
 PY
 
 pass "frontend helper scope check passed"

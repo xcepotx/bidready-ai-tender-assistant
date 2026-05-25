@@ -41,14 +41,6 @@ const emptyProjectForm = {
 };
 
 function App() {
-  const {
-    authUser,
-    authToken,
-    authForm,
-    setAuthForm,
-    loginWithPassword,
-    logoutUser,
-  } = useAuthSession({ setBusy, setMessage, setActorName });
   const [apiStatus, setApiStatus] = useState("checking");
   const [projects, setProjects] = useState([]);
   const [selectedProjectId, setSelectedProjectId] = useState(null);
@@ -92,6 +84,15 @@ function App() {
   const [actorName, setActorName] = useState(() => {
     return window.localStorage.getItem("bra_actor") || "bid_manager";
   });
+
+  const {
+    authUser,
+    authToken,
+    authForm,
+    setAuthForm,
+    loginWithPassword,
+    logoutUser,
+  } = useAuthSession({ setBusy, setMessage, setActorName });
 
   const selectedProject = useMemo(() => {
     return projects.find((item) => item.id === Number(selectedProjectId)) || null;
