@@ -16,6 +16,7 @@ from app.models import project_language  # noqa: F401
 from app.models import action_item  # noqa: F401
 from app.models import risk_item  # noqa: F401
 from app.models import compliance_scorecard  # noqa: F401
+from app.models import approval_workflow  # noqa: F401
 from app.routers.projects import router as projects_router
 from app.routers.requirements import router as requirements_router
 from app.routers.clarifications import router as clarifications_router
@@ -30,6 +31,7 @@ from app.routers.project_language import router as project_language_router
 from app.routers.action_items import router as action_items_router
 from app.routers.risk_register import router as risk_register_router
 from app.routers.compliance_scorecard import router as compliance_scorecard_router
+from app.routers.approval_workflow import router as approval_workflow_router
 from app.security.internal_key import require_internal_api_key
 
 
@@ -96,3 +98,4 @@ app.include_router(project_language_router, dependencies=[Depends(require_intern
 app.include_router(action_items_router, dependencies=[Depends(require_internal_api_key)])
 app.include_router(risk_register_router, dependencies=[Depends(require_internal_api_key)])
 app.include_router(compliance_scorecard_router, dependencies=[Depends(require_internal_api_key)])
+app.include_router(approval_workflow_router, dependencies=[Depends(require_internal_api_key)])

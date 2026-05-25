@@ -553,3 +553,81 @@ class GenerateComplianceScorecardResponse(BaseModel):
     summary: ComplianceScorecardSummary
     items: list[ComplianceItemResponse]
 
+class ApprovalRequestResponse(BaseModel):
+    id: int
+    project_id: int
+    title: str
+    description: str | None
+    status: str
+    current_step_order: int | None
+    total_steps: int
+    approved_steps: int
+    submitted_by: str | None
+    submitted_at: datetime | None
+    completed_at: datetime | None
+    final_decision: str | None
+    notes: str | None
+    generation_mode: str
+    created_at: datetime
+    updated_at: datetime | None
+
+    class Config:
+        from_attributes = True
+
+
+class ApprovalStepResponse(BaseModel):
+    id: int
+    project_id: int
+    approval_request_id: int
+    step_order: int
+    role: str
+    approver_name: str | None
+    approver_email: str | None
+    status: str
+    due_date: str | None
+    decision_note: str | None
+    decided_by: str | None
+    decided_at: datetime | None
+    created_at: datetime
+    updated_at: datetime | None
+
+    class Config:
+        from_attributes = True
+
+
+class ApprovalWorkflowSummary(BaseModel):
+    status: str
+    total_steps: int
+    approved_steps: int
+    pending_steps: int
+    not_started_steps: int
+    rejected_steps: int
+    changes_requested_steps: int
+    current_step_order: int | None
+    current_role: str | None
+    progress_percent: int
+
+
+class ApprovalWorkflowResponse(BaseModel):
+    summary: ApprovalWorkflowSummary
+    request: ApprovalRequestResponse
+    steps: list[ApprovalStepResponse]
+
+
+class GenerateApprovalWorkflowResponse(ApprovalWorkflowResponse):
+    pass
+
+
+class ApprovalWorkflowSubmit(BaseModel):
+    submitted_by: str | None = None
+    notes: str | None = None
+
+
+class ApprovalStepUpdate(BaseModel):
+    status: str | None = None
+    approver_name: str | None = None
+    approver_email: str | None = None
+    due_date: str | None = None
+    decision_note: str | None = None
+    decided_by: str | None = None
+

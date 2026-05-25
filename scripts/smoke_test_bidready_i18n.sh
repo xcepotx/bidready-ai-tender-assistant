@@ -73,6 +73,16 @@ assert_jq() {
   fi
 }
 
+
+api_post_json() {
+  local path="$1"
+  local body="$2"
+  curl -fsS -X POST "$API_BASE$path" \
+    -H "X-Internal-API-Key: $KEY" \
+    -H "Content-Type: application/json" \
+    -d "$body"
+}
+
 log "Preflight"
 require_cmd curl
 require_cmd jq
@@ -136,6 +146,10 @@ assert_jq "$TMP_DIR/generate_decision_gate.json" '.gate.recommendation | test("P
 
 api_post "/api/v1/projects/${PROJECT_ID}/generate-risk-register" > "$TMP_DIR/generate_risk_register.json"
 assert_jq "$TMP_DIR/generate_risk_register.json" '(.generated_count // (.items | length) // 0) > 0' "Risk Register generated"
+
+api_post "/api/v1/projects/${PROJECT_ID}/generate-approval-workflow" > "$TMP_DIR/generate_approval_workflow.json"
+assert_jq "$TMP_DIR/generate_approval_workflow.json" '.steps | length > 0' "Approval Workflow generated"
+assert_jq "$TMP_DIR/generate_approval_workflow.json" '.summary.total_steps > 0' "Approval Workflow summary available"
 
 log "Validate Clarifications"
 api_get "/api/v1/projects/${PROJECT_ID}/clarifications" > "$TMP_DIR/clarifications.json"
@@ -247,11 +261,33 @@ api_patch_json "/api/v1/risk-items/${RISK_ID}" \
   '{"status":"mitigating","notes":"Smoke test risk update"}' > "$TMP_DIR/risk_item_update.json"
 assert_jq "$TMP_DIR/risk_item_update.json" '.status == "mitigating"' "Risk item update works"
 
+log "Validate Approval Workflow"
+api_get "/api/v1/projects/${PROJECT_ID}/approval-workflow" > "$TMP_DIR/approval_workflow.json"
+assert_jq "$TMP_DIR/approval_workflow.json" '.steps | length > 0' "Approval Workflow exists"
+
+APPROVAL_ID="$(jq -r '.request.id // empty' "$TMP_DIR/approval_workflow.json")"
+if [ -z "$APPROVAL_ID" ]; then
+  fail "Approval workflow ID available"
+fi
+
+api_post_json "/api/v1/approval-workflows/${APPROVAL_ID}/submit" \
+  '{"submitted_by":"smoke_test","notes":"Smoke test approval submission"}' > "$TMP_DIR/approval_submit.json"
+assert_jq "$TMP_DIR/approval_submit.json" '.request.status == "pending"' "Approval Workflow submit works"
+
+APPROVAL_STEP_ID="$(jq -r '.steps[0].id // empty' "$TMP_DIR/approval_submit.json")"
+if [ -z "$APPROVAL_STEP_ID" ]; then
+  fail "Approval step ID available"
+fi
+
+api_patch_json "/api/v1/approval-steps/${APPROVAL_STEP_ID}" \
+  '{"status":"approved","decision_note":"Smoke test approved","decided_by":"smoke_test"}' > "$TMP_DIR/approval_step_update.json"
+assert_jq "$TMP_DIR/approval_step_update.json" '.status == "approved"' "Approval step approve works"
+
 log "Validate Audit Log"
 api_get "/api/v1/projects/${PROJECT_ID}/audit-logs" > "$TMP_DIR/audit_logs.json"
 assert_jq "$TMP_DIR/audit_logs.json" 'length > 0' "Audit logs exist"
 assert_jq "$TMP_DIR/audit_logs.json" \
-  'any(.[]; .action == "generate_response_plan") and any(.[]; .action == "generate_proposal_outline") and any(.[]; .action == "generate_decision_gate") and any(.[]; .action == "generate_compliance_scorecard") and any(.[]; .action == "generate_risk_register")' \
+  'any(.[]; .action == "generate_response_plan") and any(.[]; .action == "generate_proposal_outline") and any(.[]; .action == "generate_decision_gate") and any(.[]; .action == "generate_compliance_scorecard") and any(.[]; .action == "generate_risk_register") and any(.[]; .action == "generate_approval_workflow")' \
   "Audit logs contain generated artifact actions"
 
 log "Export Excel and DOCX"

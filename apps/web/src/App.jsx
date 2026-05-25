@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
-import { AlertTriangle, ClipboardCheck, FileQuestion, FileText, History, LayoutDashboard, Plus, RefreshCw, Upload, ShieldCheck } from "lucide-react";
+import { AlertTriangle, ClipboardCheck, FileQuestion, FileText, History, LayoutDashboard, Plus, RefreshCw, Upload, ShieldCheck, CheckCircle2 } from "lucide-react";
 import "./style.css";
 
 const emptyProjectForm = {
@@ -23,6 +23,8 @@ function App() {
   const [evidencePack, setEvidencePack] = useState([]);
   const [decisionGate, setDecisionGate] = useState(null);
   const [complianceScorecard, setComplianceScorecard] = useState({ summary: null, items: [] });
+  const [approvalWorkflow, setApprovalWorkflow] = useState({ summary: null, request: null, steps: [] });
+  const [riskItems, setRiskItems] = useState([]);
   const [actionItems, setActionItems] = useState([]);
   const [languageSetting, setLanguageSetting] = useState({
     input_language: "auto",
@@ -127,7 +129,7 @@ function App() {
     if (!projectId) return;
 
     try {
-      const [docs, reqs, qs, responseItems, proposalSections, evidenceItems, gate, actionItemsData, language, audits, summary, metadata, brief] = await Promise.all([
+      const [docs, reqs, qs, responseItems, proposalSections, evidenceItems, gate, approvalData, complianceData, riskItemsData, actionItemsData, language, audits, summary, metadata, brief] = await Promise.all([
         apiFetch(`/api/v1/projects/${projectId}/documents`).catch(() => []),
         apiFetch(`/api/v1/projects/${projectId}/requirements`).catch(() => []),
         apiFetch(`/api/v1/projects/${projectId}/clarifications`).catch(() => []),
@@ -135,6 +137,9 @@ function App() {
         apiFetch(`/api/v1/projects/${projectId}/proposal-outline`).catch(() => []),
         apiFetch(`/api/v1/projects/${projectId}/evidence-pack`).catch(() => []),
         apiFetch(`/api/v1/projects/${projectId}/decision-gate`).catch(() => null),
+        apiFetch(`/api/v1/projects/${projectId}/approval-workflow`).catch(() => ({ summary: null, request: null, steps: [] })),
+        apiFetch(`/api/v1/projects/${projectId}/compliance-scorecard`).catch(() => ({ summary: null, items: [] })),
+        apiFetch(`/api/v1/projects/${projectId}/risk-register`).catch(() => []),
         apiFetch(`/api/v1/projects/${projectId}/action-items`).catch(() => []),
         apiFetch(`/api/v1/projects/${projectId}/language`).catch(() => ({
           input_language: "auto",
@@ -153,6 +158,9 @@ function App() {
       setProposalOutline(proposalSections);
       setEvidencePack(evidenceItems);
       setDecisionGate(gate);
+      setApprovalWorkflow(approvalData || { summary: null, request: null, steps: [] });
+      setComplianceScorecard(complianceData || { summary: null, items: [] });
+      setRiskItems(riskItemsData || []);
       setActionItems(actionItemsData || []);
       setLanguageSetting(language || { input_language: "auto", output_language: "en" });
       setAuditLogs(audits);
@@ -795,6 +803,95 @@ function App() {
   }
 
 
+
+  async function generateApprovalWorkflow() {
+    if (!selectedProjectId) {
+      setMessage("Select a bid project first.");
+      return;
+    }
+
+    setBusy(true);
+    setMessage("Generating approval workflow...");
+
+    try {
+      const result = await apiFetch(`/api/v1/projects/${selectedProjectId}/generate-approval-workflow`, {
+        method: "POST",
+        headers: {
+          "X-Actor": actorName,
+        },
+      });
+
+      setApprovalWorkflow(result || { summary: null, request: null, steps: [] });
+      setActiveProjectView("approvals");
+      setMessage("Approval workflow generated.");
+    } catch (err) {
+      setMessage(`Generate approval workflow failed: ${err.message}`);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function submitApprovalWorkflow(workflowId) {
+    if (!workflowId) {
+      setMessage("Generate approval workflow first.");
+      return;
+    }
+
+    setBusy(true);
+    setMessage("Submitting approval workflow...");
+
+    try {
+      const result = await apiFetch(`/api/v1/approval-workflows/${workflowId}/submit`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Actor": actorName,
+        },
+        body: JSON.stringify({
+          submitted_by: actorName,
+        }),
+      });
+
+      setApprovalWorkflow(result || { summary: null, request: null, steps: [] });
+      setMessage("Approval workflow submitted.");
+    } catch (err) {
+      setMessage(`Submit approval workflow failed: ${err.message}`);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function updateApprovalStep(stepId, patch) {
+    setBusy(true);
+    setMessage("");
+
+    try {
+      const updated = await apiFetch(`/api/v1/approval-steps/${stepId}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Actor": actorName,
+        },
+        body: JSON.stringify({
+          decided_by: actorName,
+          ...patch,
+        }),
+      });
+
+      setApprovalWorkflow((current) => ({
+        ...(current || {}),
+        steps: (current?.steps || []).map((item) => (item.id === updated.id ? updated : item)),
+      }));
+
+      await loadProjectData(selectedProjectId);
+      setMessage("Approval step updated.");
+    } catch (err) {
+      setMessage(`Update approval step failed: ${err.message}`);
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function generateComplianceScorecard() {
     if (!selectedProjectId) {
       setMessage("Select a bid project first.");
@@ -847,6 +944,60 @@ function App() {
       setMessage("Compliance item updated.");
     } catch (err) {
       setMessage(`Update compliance item failed: ${err.message}`);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+
+  async function generateRiskRegister() {
+    if (!selectedProjectId) {
+      setMessage("Select a bid project first.");
+      return;
+    }
+
+    setBusy(true);
+    setMessage("Generating risk register...");
+
+    try {
+      const result = await apiFetch(`/api/v1/projects/${selectedProjectId}/generate-risk-register`, {
+        method: "POST",
+        headers: {
+          "X-Actor": actorName,
+        },
+      });
+
+      setRiskItems(result.items || []);
+      setActiveProjectView("risks");
+      setMessage(`Generated ${result.generated_count || 0} risk item(s).`);
+    } catch (err) {
+      setMessage(`Generate risk register failed: ${err.message}`);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function updateRiskItem(itemId, patch) {
+    setBusy(true);
+    setMessage("");
+
+    try {
+      const updated = await apiFetch(`/api/v1/risk-items/${itemId}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Actor": actorName,
+        },
+        body: JSON.stringify(patch),
+      });
+
+      setRiskItems((items) =>
+        items.map((item) => (item.id === updated.id ? updated : item))
+      );
+
+      setMessage("Risk item updated.");
+    } catch (err) {
+      setMessage(`Update risk item failed: ${err.message}`);
     } finally {
       setBusy(false);
     }
@@ -946,6 +1097,14 @@ function App() {
         {
           label: "compliance scorecard",
           path: `/api/v1/projects/${selectedProjectId}/generate-compliance-scorecard`,
+        },
+        {
+          label: "risk register",
+          path: `/api/v1/projects/${selectedProjectId}/generate-risk-register`,
+        },
+        {
+          label: "approval workflow",
+          path: `/api/v1/projects/${selectedProjectId}/generate-approval-workflow`,
         },
       ];
 
@@ -1143,6 +1302,7 @@ function App() {
           <ProjectViewTabs
             activeProjectView={activeProjectView}
             setActiveProjectView={setActiveProjectView}
+            approvalWorkflow={approvalWorkflow}
             complianceScorecard={complianceScorecard}
             riskItems={riskItems}
             actionItems={actionItems}
@@ -1253,6 +1413,17 @@ function App() {
               busy={busy}
               generateComplianceScorecard={generateComplianceScorecard}
               updateComplianceItem={updateComplianceItem}
+            />
+          )}
+
+          {activeProjectView === "approvals" && (
+            <ApprovalWorkflowView
+              approvalWorkflow={approvalWorkflow}
+              busy={busy}
+              actorName={actorName}
+              generateApprovalWorkflow={generateApprovalWorkflow}
+              submitApprovalWorkflow={submitApprovalWorkflow}
+              updateApprovalStep={updateApprovalStep}
             />
           )}
 
@@ -1370,7 +1541,7 @@ function formatWibDateTime(value) {
   }).format(date)} WIB`;
 }
 
-function ProjectViewTabs({ activeProjectView, setActiveProjectView, complianceScorecard = { summary: null, items: [] }, riskItems = [], actionItems = [] }) {
+function ProjectViewTabs({ activeProjectView, setActiveProjectView, approvalWorkflow = { summary: null, request: null, steps: [] }, complianceScorecard = { summary: null, items: [] }, riskItems = [], actionItems = [] }) {
   const tabs = [
     { key: "summary", label: "Summary", shortLabel: "Summary", icon: LayoutDashboard },
     { key: "requirements", label: "Requirements", shortLabel: "Reqs", icon: ClipboardCheck },
@@ -1379,6 +1550,7 @@ function ProjectViewTabs({ activeProjectView, setActiveProjectView, complianceSc
     { key: "proposal", label: "Proposal Outline", shortLabel: "Proposal", icon: FileText },
     { key: "evidence", label: "Evidence Pack", shortLabel: "Evidence", icon: FileText },
     { key: "compliance", label: "Compliance Matrix", shortLabel: "Compliance", icon: ShieldCheck, badge: complianceScorecard?.summary?.score_percent ?? 0 },
+    { key: "approvals", label: "Approval Workflow", shortLabel: "Approvals", icon: CheckCircle2, badge: approvalWorkflow?.summary?.pending_steps ?? 0 },
     { key: "risks", label: "Risk Register", shortLabel: "Risks", icon: AlertTriangle, badge: riskItems.length },
     { key: "actions", label: "Action Tracker", shortLabel: "Actions", icon: ClipboardCheck, badge: actionItems.length },
     { key: "audit", label: "Audit Log", shortLabel: "Audit", icon: History },
@@ -3638,6 +3810,189 @@ function ComplianceRelationBox({ title, values = [] }) {
     <div className="relationBox">
       <span>{title}</span>
       <strong>{safeValues.length ? safeValues.join(", ") : "-"}</strong>
+    </div>
+  );
+}
+
+
+function ApprovalWorkflowView({
+  approvalWorkflow = { summary: null, request: null, steps: [] },
+  busy,
+  actorName,
+  generateApprovalWorkflow,
+  submitApprovalWorkflow,
+  updateApprovalStep,
+}) {
+  const summary = approvalWorkflow?.summary || {};
+  const request = approvalWorkflow?.request || null;
+  const steps = Array.isArray(approvalWorkflow?.steps) ? approvalWorkflow.steps : [];
+
+  const statusCounts = steps.reduce((acc, step) => {
+    acc[step.status] = (acc[step.status] || 0) + 1;
+    return acc;
+  }, {});
+
+  return (
+    <div className="workspaceView approvalWorkflowView">
+      <div className="viewHeader approvalHeader">
+        <div>
+          <p className="eyebrow">Approval Workflow</p>
+          <h2>Bid approval routing and sign-off</h2>
+          <p className="muted">
+            Generate approval steps from decision gate, compliance scorecard, risk register, and action tracker.
+          </p>
+        </div>
+
+        <div className="approvalHeaderActions">
+          <button
+            type="button"
+            className="regenerateAllButton"
+            disabled={busy}
+            onClick={generateApprovalWorkflow}
+          >
+            Generate Workflow
+          </button>
+
+          <button
+            type="button"
+            className="secondaryButton"
+            disabled={busy || !request?.id || request?.status !== "draft"}
+            onClick={() => submitApprovalWorkflow(request?.id)}
+          >
+            Submit for Approval
+          </button>
+        </div>
+      </div>
+
+      <div className="approvalSummaryHero">
+        <div className="approvalProgressRing">
+          <strong>{summary.progress_percent ?? 0}%</strong>
+          <span>Approved</span>
+        </div>
+
+        <div className="approvalSummaryCopy">
+          <h3>{request?.title || "No approval workflow generated yet"}</h3>
+          <p className="muted">
+            {request?.description || "Generate an approval workflow after compliance, risks, and decision gate are ready."}
+          </p>
+          <div className={`approvalStatusPill ${request?.status || "not_generated"}`}>
+            {request?.status || "not_generated"}
+          </div>
+        </div>
+      </div>
+
+      <div className="actionStatGrid approvalStatGrid">
+        <ComplianceMetric label="Total Steps" value={summary.total_steps ?? steps.length} />
+        <ComplianceMetric label="Pending" value={summary.pending_steps ?? statusCounts.pending ?? 0} tone="warning" />
+        <ComplianceMetric label="Approved" value={summary.approved_steps ?? statusCounts.approved ?? 0} />
+        <ComplianceMetric label="Changes" value={summary.changes_requested_steps ?? statusCounts.changes_requested ?? 0} tone="warning" />
+        <ComplianceMetric label="Rejected" value={summary.rejected_steps ?? statusCounts.rejected ?? 0} tone="danger" />
+      </div>
+
+      {steps.length === 0 ? (
+        <div className="sectionBox actionEmptyState">
+          <h3>No approval steps yet</h3>
+          <p className="muted">Generate the approval workflow after the decision gate and scorecards are available.</p>
+        </div>
+      ) : (
+        <div className="approvalStepTimeline">
+          {steps.map((step) => (
+            <article key={step.id} className={`approvalStepCard ${step.status}`}>
+              <div className="approvalStepOrder">{step.step_order}</div>
+
+              <div className="approvalStepBody">
+                <div className="approvalStepTop">
+                  <div>
+                    <span className={`approvalStatusPill ${step.status}`}>{step.status}</span>
+                    <span className="sourcePill">{step.role}</span>
+                  </div>
+
+                  <strong>{step.approver_name || step.role}</strong>
+                </div>
+
+                <div className="approvalInlineGrid">
+                  <label>
+                    Approver
+                    <input
+                      className="tableInput"
+                      defaultValue={step.approver_name || ""}
+                      disabled={busy}
+                      onBlur={(e) => {
+                        if (e.target.value !== (step.approver_name || "")) {
+                          updateApprovalStep(step.id, { approver_name: e.target.value });
+                        }
+                      }}
+                    />
+                  </label>
+
+                  <label>
+                    Email
+                    <input
+                      className="tableInput"
+                      defaultValue={step.approver_email || ""}
+                      disabled={busy}
+                      onBlur={(e) => {
+                        if (e.target.value !== (step.approver_email || "")) {
+                          updateApprovalStep(step.id, { approver_email: e.target.value });
+                        }
+                      }}
+                    />
+                  </label>
+
+                  <label>
+                    Due Date
+                    <input
+                      className="tableInput"
+                      defaultValue={step.due_date || ""}
+                      disabled={busy}
+                      onBlur={(e) => {
+                        if (e.target.value !== (step.due_date || "")) {
+                          updateApprovalStep(step.id, { due_date: e.target.value });
+                        }
+                      }}
+                    />
+                  </label>
+                </div>
+
+                <label className="approvalDecisionNote">
+                  Decision Note
+                  <textarea
+                    className="tableTextarea"
+                    defaultValue={step.decision_note || ""}
+                    disabled={busy}
+                    onBlur={(e) => {
+                      if (e.target.value !== (step.decision_note || "")) {
+                        updateApprovalStep(step.id, { decision_note: e.target.value });
+                      }
+                    }}
+                  />
+                </label>
+
+                <div className="approvalQuickControls">
+                  <button type="button" disabled={busy} onClick={() => updateApprovalStep(step.id, { status: "pending" })}>
+                    Mark Pending
+                  </button>
+                  <button type="button" disabled={busy} onClick={() => updateApprovalStep(step.id, { status: "approved", decision_note: step.decision_note || `Approved by ${actorName}` })}>
+                    Approve
+                  </button>
+                  <button type="button" disabled={busy} onClick={() => updateApprovalStep(step.id, { status: "changes_requested", decision_note: step.decision_note || "Changes requested" })}>
+                    Request Changes
+                  </button>
+                  <button type="button" disabled={busy} onClick={() => updateApprovalStep(step.id, { status: "rejected", decision_note: step.decision_note || "Rejected" })}>
+                    Reject
+                  </button>
+                </div>
+
+                {step.decided_at && (
+                  <p className="approvalDecisionMeta">
+                    Decided by {step.decided_by || "-"} at {new Date(step.decided_at).toLocaleString()}
+                  </p>
+                )}
+              </div>
+            </article>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
