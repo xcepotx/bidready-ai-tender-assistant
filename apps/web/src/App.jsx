@@ -17,6 +17,7 @@ import MetadataField from "./components/MetadataField.jsx";
 import BriefList from "./components/BriefList.jsx";
 import RelationBox from "./components/RelationBox.jsx";
 import ResponseList from "./components/ResponseList.jsx";
+import ProposalList from "./components/ProposalList.jsx";
 function L(en, id) {
   return en || id || "";
 }
@@ -3206,23 +3207,6 @@ function ProposalSectionDetail({ section, busy, updateProposalSection }) {
           }}
         />
       </label>
-    </div>
-  );
-}
-
-function ProposalList({ title, items }) {
-  return (
-    <div className="proposalListBox">
-      <h3>{title}</h3>
-      {items.length === 0 ? (
-        <p className="muted">No item.</p>
-      ) : (
-        <ul>
-          {items.map((item, index) => (
-            <li key={`${title}-${index}`}>{item}</li>
-          ))}
-        </ul>
-      )}
     </div>
   );
 }
