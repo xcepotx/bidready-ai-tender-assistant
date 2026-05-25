@@ -127,6 +127,10 @@ assert_jq "$TMP_DIR/generate_proposal_outline.json" '(.generated_count // (.sect
 api_post "/api/v1/projects/${PROJECT_ID}/generate-evidence-pack" > "$TMP_DIR/generate_evidence_pack.json"
 assert_jq "$TMP_DIR/generate_evidence_pack.json" '(.generated_count // (.items | length) // 0) > 0' "Evidence Pack generated"
 
+api_post "/api/v1/projects/${PROJECT_ID}/generate-compliance-scorecard" > "$TMP_DIR/generate_compliance_scorecard.json"
+assert_jq "$TMP_DIR/generate_compliance_scorecard.json" '(.generated_count // (.items | length) // 0) > 0' "Compliance Scorecard generated"
+assert_jq "$TMP_DIR/generate_compliance_scorecard.json" '.summary.score_percent >= 0' "Compliance Scorecard summary available"
+
 api_post "/api/v1/projects/${PROJECT_ID}/generate-decision-gate" > "$TMP_DIR/generate_decision_gate.json"
 assert_jq "$TMP_DIR/generate_decision_gate.json" '.gate.recommendation | test("Perlu|Rekomendasi")' "Decision Gate generated in Indonesian"
 
@@ -214,6 +218,21 @@ assert_jq "$TMP_DIR/decision_gate.json" \
   '.next_actions | tostring | test("Selesaikan|Kumpulkan|Pindahkan")' \
   "Decision Gate next actions localized"
 
+log "Validate Compliance Scorecard"
+api_get "/api/v1/projects/${PROJECT_ID}/compliance-scorecard" > "$TMP_DIR/compliance_scorecard.json"
+assert_jq "$TMP_DIR/compliance_scorecard.json" '.items | length > 0' "Compliance Scorecard exists"
+assert_jq "$TMP_DIR/compliance_scorecard.json" '.summary.score_percent >= 0' "Compliance Scorecard score exists"
+assert_jq "$TMP_DIR/compliance_scorecard.json" 'any(.items[]; (.gap_summary // .recommended_action // "") | test("Requirement|review|evidence|Compliance|Clarification|Gap|Tugaskan|Dihasilkan|Review"))' "Compliance Scorecard guidance available/localized"
+
+COMPLIANCE_ID="$(jq -r '.items[0].id // empty' "$TMP_DIR/compliance_scorecard.json")"
+if [ -z "$COMPLIANCE_ID" ]; then
+  fail "Compliance item ID available"
+fi
+
+api_patch_json "/api/v1/compliance-items/${COMPLIANCE_ID}" \
+  '{"compliance_status":"needs_review","score":55,"notes":"Smoke test compliance update"}' > "$TMP_DIR/compliance_item_update.json"
+assert_jq "$TMP_DIR/compliance_item_update.json" '.compliance_status == "needs_review" and .score == 55' "Compliance item update works"
+
 log "Validate Risk Register"
 api_get "/api/v1/projects/${PROJECT_ID}/risk-register" > "$TMP_DIR/risk_register.json"
 assert_jq "$TMP_DIR/risk_register.json" 'length > 0' "Risk Register exists"
@@ -232,7 +251,7 @@ log "Validate Audit Log"
 api_get "/api/v1/projects/${PROJECT_ID}/audit-logs" > "$TMP_DIR/audit_logs.json"
 assert_jq "$TMP_DIR/audit_logs.json" 'length > 0' "Audit logs exist"
 assert_jq "$TMP_DIR/audit_logs.json" \
-  'any(.[]; .action == "generate_response_plan") and any(.[]; .action == "generate_proposal_outline") and any(.[]; .action == "generate_decision_gate") and any(.[]; .action == "generate_risk_register")' \
+  'any(.[]; .action == "generate_response_plan") and any(.[]; .action == "generate_proposal_outline") and any(.[]; .action == "generate_decision_gate") and any(.[]; .action == "generate_compliance_scorecard") and any(.[]; .action == "generate_risk_register")' \
   "Audit logs contain generated artifact actions"
 
 log "Export Excel and DOCX"

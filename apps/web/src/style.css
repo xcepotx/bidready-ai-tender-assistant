@@ -4167,3 +4167,200 @@ button:hover {
     grid-template-columns: 1fr;
   }
 }
+
+/* ===== Compliance Matrix Scorecard ===== */
+
+.complianceScorecardView .complianceHeader {
+  background:
+    radial-gradient(circle at top right, rgba(34, 197, 94, 0.12), transparent 34%),
+    #ffffff;
+}
+
+.complianceScoreHero {
+  display: grid;
+  grid-template-columns: 180px minmax(0, 1fr);
+  gap: 18px;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.complianceScoreCircle {
+  aspect-ratio: 1;
+  border-radius: 999px;
+  border: 10px solid #dcfce7;
+  background: #f0fdf4;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
+}
+
+.complianceScoreCircle strong {
+  font-size: 38px;
+  color: #166534;
+}
+
+.complianceScoreCircle span {
+  font-size: 12px;
+  color: #64748b;
+  margin-top: -28px;
+}
+
+.complianceScoreCopy {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 22px;
+  padding: 18px;
+}
+
+.complianceMiniGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.miniMetricList {
+  display: grid;
+  gap: 8px;
+}
+
+.miniMetricList span {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  color: #475569;
+  font-size: 13px;
+}
+
+.complianceMatrixList {
+  display: grid;
+  gap: 14px;
+}
+
+.complianceMatrixCard {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-left: 6px solid #94a3b8;
+  border-radius: 20px;
+  padding: 16px;
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.06);
+}
+
+.complianceMatrixCard.compliant {
+  border-left-color: #22c55e;
+}
+
+.complianceMatrixCard.partially_compliant,
+.complianceMatrixCard.needs_review,
+.complianceMatrixCard.needs_clarification {
+  border-left-color: #f59e0b;
+}
+
+.complianceMatrixCard.non_compliant,
+.complianceMatrixCard.not_started {
+  border-left-color: #ef4444;
+}
+
+.complianceCardTop {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+  margin-bottom: 10px;
+}
+
+.complianceStatusPill {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 5px 10px;
+  margin-right: 6px;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background: #e2e8f0;
+  color: #334155;
+}
+
+.complianceStatusPill.compliant {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.complianceStatusPill.partially_compliant,
+.complianceStatusPill.needs_review,
+.complianceStatusPill.needs_clarification {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.complianceStatusPill.non_compliant,
+.complianceStatusPill.not_started {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.complianceScorePill {
+  min-width: 78px;
+  border-radius: 16px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  padding: 8px 10px;
+  text-align: center;
+}
+
+.complianceScorePill strong {
+  font-size: 24px;
+  color: #0f172a;
+}
+
+.complianceScorePill span {
+  color: #64748b;
+  font-size: 12px;
+}
+
+.complianceInlineGrid {
+  display: grid;
+  grid-template-columns: 1.3fr 0.7fr 1fr;
+  gap: 12px;
+  margin: 12px 0;
+}
+
+.complianceInlineGrid label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: #64748b;
+}
+
+.relationBox {
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 10px;
+  background: #f8fafc;
+}
+
+.relationBox span {
+  display: block;
+  font-size: 11px;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.relationBox strong {
+  display: block;
+  margin-top: 4px;
+  color: #0f172a;
+  font-size: 13px;
+}
+
+@media (max-width: 900px) {
+  .complianceScoreHero,
+  .complianceMiniGrid,
+  .complianceInlineGrid {
+    grid-template-columns: 1fr;
+  }
+}

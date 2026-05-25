@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
-import { AlertTriangle, ClipboardCheck, FileQuestion, FileText, History, LayoutDashboard, Plus, RefreshCw, Upload } from "lucide-react";
+import { AlertTriangle, ClipboardCheck, FileQuestion, FileText, History, LayoutDashboard, Plus, RefreshCw, Upload, ShieldCheck } from "lucide-react";
 import "./style.css";
 
 const emptyProjectForm = {
@@ -22,6 +22,7 @@ function App() {
   const [proposalOutline, setProposalOutline] = useState([]);
   const [evidencePack, setEvidencePack] = useState([]);
   const [decisionGate, setDecisionGate] = useState(null);
+  const [complianceScorecard, setComplianceScorecard] = useState({ summary: null, items: [] });
   const [actionItems, setActionItems] = useState([]);
   const [languageSetting, setLanguageSetting] = useState({
     input_language: "auto",
@@ -793,6 +794,64 @@ function App() {
     }
   }
 
+
+  async function generateComplianceScorecard() {
+    if (!selectedProjectId) {
+      setMessage("Select a bid project first.");
+      return;
+    }
+
+    setBusy(true);
+    setMessage("Generating compliance scorecard...");
+
+    try {
+      const result = await apiFetch(`/api/v1/projects/${selectedProjectId}/generate-compliance-scorecard`, {
+        method: "POST",
+        headers: {
+          "X-Actor": actorName,
+        },
+      });
+
+      setComplianceScorecard({
+        summary: result.summary || null,
+        items: result.items || [],
+      });
+      setActiveProjectView("compliance");
+      setMessage(`Generated ${result.generated_count || 0} compliance matrix item(s).`);
+    } catch (err) {
+      setMessage(`Generate compliance scorecard failed: ${err.message}`);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function updateComplianceItem(itemId, patch) {
+    setBusy(true);
+    setMessage("");
+
+    try {
+      const updated = await apiFetch(`/api/v1/compliance-items/${itemId}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Actor": actorName,
+        },
+        body: JSON.stringify(patch),
+      });
+
+      setComplianceScorecard((current) => ({
+        ...(current || {}),
+        items: (current?.items || []).map((item) => (item.id === updated.id ? updated : item)),
+      }));
+
+      setMessage("Compliance item updated.");
+    } catch (err) {
+      setMessage(`Update compliance item failed: ${err.message}`);
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function generateActionItems() {
     if (!selectedProjectId) {
       setMessage("Select a bid project first.");
@@ -883,6 +942,10 @@ function App() {
         {
           label: "decision gate",
           path: `/api/v1/projects/${selectedProjectId}/generate-decision-gate`,
+        },
+        {
+          label: "compliance scorecard",
+          path: `/api/v1/projects/${selectedProjectId}/generate-compliance-scorecard`,
         },
       ];
 
@@ -1080,6 +1143,7 @@ function App() {
           <ProjectViewTabs
             activeProjectView={activeProjectView}
             setActiveProjectView={setActiveProjectView}
+            complianceScorecard={complianceScorecard}
             riskItems={riskItems}
             actionItems={actionItems}
           />
@@ -1180,6 +1244,15 @@ function App() {
               projectMetadata={projectMetadata}
               responsePlan={responsePlan}
               proposalOutline={proposalOutline}
+            />
+          )}
+
+          {activeProjectView === "compliance" && (
+            <ComplianceScorecardView
+              complianceScorecard={complianceScorecard}
+              busy={busy}
+              generateComplianceScorecard={generateComplianceScorecard}
+              updateComplianceItem={updateComplianceItem}
             />
           )}
 
@@ -1297,7 +1370,7 @@ function formatWibDateTime(value) {
   }).format(date)} WIB`;
 }
 
-function ProjectViewTabs({ activeProjectView, setActiveProjectView, riskItems = [], actionItems = [] }) {
+function ProjectViewTabs({ activeProjectView, setActiveProjectView, complianceScorecard = { summary: null, items: [] }, riskItems = [], actionItems = [] }) {
   const tabs = [
     { key: "summary", label: "Summary", shortLabel: "Summary", icon: LayoutDashboard },
     { key: "requirements", label: "Requirements", shortLabel: "Reqs", icon: ClipboardCheck },
@@ -1305,6 +1378,7 @@ function ProjectViewTabs({ activeProjectView, setActiveProjectView, riskItems = 
     { key: "response", label: "Response Plan", shortLabel: "Response", icon: FileText },
     { key: "proposal", label: "Proposal Outline", shortLabel: "Proposal", icon: FileText },
     { key: "evidence", label: "Evidence Pack", shortLabel: "Evidence", icon: FileText },
+    { key: "compliance", label: "Compliance Matrix", shortLabel: "Compliance", icon: ShieldCheck, badge: complianceScorecard?.summary?.score_percent ?? 0 },
     { key: "risks", label: "Risk Register", shortLabel: "Risks", icon: AlertTriangle, badge: riskItems.length },
     { key: "actions", label: "Action Tracker", shortLabel: "Actions", icon: ClipboardCheck, badge: actionItems.length },
     { key: "audit", label: "Audit Log", shortLabel: "Audit", icon: History },
@@ -3543,6 +3617,303 @@ function RiskStat({ label, value, tone = "" }) {
     <div className={`actionStat ${tone}`}>
       <strong>{value}</strong>
       <span>{label}</span>
+    </div>
+  );
+}
+
+
+function ComplianceMetric({ label, value, tone = "" }) {
+  return (
+    <div className={`actionStat ${tone}`}>
+      <strong>{value}</strong>
+      <span>{label}</span>
+    </div>
+  );
+}
+
+function ComplianceRelationBox({ title, values = [] }) {
+  const safeValues = Array.isArray(values) ? values.filter((item) => item !== null && item !== undefined) : [];
+
+  return (
+    <div className="relationBox">
+      <span>{title}</span>
+      <strong>{safeValues.length ? safeValues.join(", ") : "-"}</strong>
+    </div>
+  );
+}
+
+function ComplianceScorecardView({
+  complianceScorecard = { summary: null, items: [] },
+  busy,
+  generateComplianceScorecard,
+  updateComplianceItem,
+}) {
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [ownerFilter, setOwnerFilter] = useState("all");
+
+  const summary = complianceScorecard?.summary || {};
+  const safeItems = Array.isArray(complianceScorecard?.items) ? complianceScorecard.items : [];
+
+  const categories = useMemo(
+    () => Array.from(new Set(safeItems.map((item) => item.category).filter(Boolean))).sort(),
+    [safeItems]
+  );
+
+  const owners = useMemo(
+    () => Array.from(new Set(safeItems.map((item) => item.owner).filter(Boolean))).sort(),
+    [safeItems]
+  );
+
+  const filteredItems = safeItems
+    .filter((item) => {
+      if (statusFilter !== "all" && item.compliance_status !== statusFilter) return false;
+      if (categoryFilter !== "all" && item.category !== categoryFilter) return false;
+      if (ownerFilter !== "all" && item.owner !== ownerFilter) return false;
+      return true;
+    })
+    .sort((a, b) => (a.score ?? 0) - (b.score ?? 0));
+
+  const statusCounts = summary.status_counts || {};
+  const evidenceCounts = summary.evidence_coverage_counts || {};
+
+  return (
+    <div className="workspaceView complianceScorecardView">
+      <div className="viewHeader complianceHeader">
+        <div>
+          <p className="eyebrow">Compliance Matrix Scorecard</p>
+          <h2>Requirement compliance matrix and scoring</h2>
+          <p className="muted">
+            Scores every requirement against response status, evidence coverage, clarification dependency, risk, and priority.
+          </p>
+        </div>
+
+        <button
+          type="button"
+          className="regenerateAllButton"
+          disabled={busy}
+          onClick={generateComplianceScorecard}
+        >
+          Generate Scorecard
+        </button>
+      </div>
+
+      <div className="complianceScoreHero">
+        <div className="complianceScoreCircle">
+          <strong>{summary.score_percent ?? 0}%</strong>
+          <span>Compliance Score</span>
+        </div>
+
+        <div className="complianceScoreCopy">
+          <h3>{summary.recommendation || "Generate the compliance scorecard to review bid gaps."}</h3>
+          <p className="muted">
+            Weighted score: {summary.weighted_score ?? 0} / {summary.max_score ?? 0}. High-risk gaps: {summary.high_risk_gaps ?? 0}.
+          </p>
+        </div>
+      </div>
+
+      <div className="actionStatGrid complianceStatGrid">
+        <ComplianceMetric label="Total Items" value={summary.total_items ?? safeItems.length} />
+        <ComplianceMetric label="Compliant" value={statusCounts.compliant || 0} />
+        <ComplianceMetric label="Partial" value={statusCounts.partially_compliant || 0} tone="warning" />
+        <ComplianceMetric label="Need Review" value={statusCounts.needs_review || 0} tone="warning" />
+        <ComplianceMetric label="Need Clarify" value={statusCounts.needs_clarification || 0} tone="warning" />
+        <ComplianceMetric label="Non-Compliant" value={statusCounts.non_compliant || 0} tone="danger" />
+      </div>
+
+      <div className="complianceMiniGrid">
+        <div className="sectionBox">
+          <h3>Evidence Coverage</h3>
+          <div className="miniMetricList">
+            <span>Covered <strong>{evidenceCounts.covered || 0}</strong></span>
+            <span>Partial <strong>{evidenceCounts.partial || 0}</strong></span>
+            <span>Missing <strong>{evidenceCounts.missing || 0}</strong></span>
+          </div>
+        </div>
+
+        <div className="sectionBox">
+          <h3>Lowest Category Scores</h3>
+          <div className="miniMetricList">
+            {(summary.category_scores || []).slice(0, 5).map((item) => (
+              <span key={item.category}>{item.category} <strong>{item.score_percent}%</strong></span>
+            ))}
+            {!(summary.category_scores || []).length && <span>No category score yet.</span>}
+          </div>
+        </div>
+      </div>
+
+      <div className="actionFilterBar complianceFilterBar">
+        <label>
+          Status
+          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+            <option value="all">All statuses</option>
+            <option value="compliant">Compliant</option>
+            <option value="partially_compliant">Partially compliant</option>
+            <option value="needs_review">Needs review</option>
+            <option value="needs_clarification">Needs clarification</option>
+            <option value="non_compliant">Non-compliant</option>
+            <option value="not_started">Not started</option>
+          </select>
+        </label>
+
+        <label>
+          Category
+          <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}>
+            <option value="all">All categories</option>
+            {categories.map((category) => (
+              <option key={category} value={category}>{category}</option>
+            ))}
+          </select>
+        </label>
+
+        <label>
+          Owner
+          <select value={ownerFilter} onChange={(e) => setOwnerFilter(e.target.value)}>
+            <option value="all">All owners</option>
+            {owners.map((owner) => (
+              <option key={owner} value={owner}>{owner}</option>
+            ))}
+          </select>
+        </label>
+      </div>
+
+      <p className="actionTrackerMeta">
+        Showing {filteredItems.length} of {safeItems.length} compliance item(s).
+      </p>
+
+      {filteredItems.length === 0 ? (
+        <div className="sectionBox actionEmptyState">
+          <h3>No compliance matrix yet</h3>
+          <p className="muted">Generate the scorecard after requirements, response plan, and evidence pack are available.</p>
+        </div>
+      ) : (
+        <div className="complianceMatrixList">
+          {filteredItems.map((item) => (
+            <article key={item.id} className={`complianceMatrixCard ${item.compliance_status}`}>
+              <div className="complianceCardTop">
+                <div>
+                  <span className={`complianceStatusPill ${item.compliance_status}`}>{item.compliance_status}</span>
+                  <span className="sourcePill">{item.category}</span>
+                  <span className={`sourcePill ${item.evidence_coverage}`}>Evidence: {item.evidence_coverage}</span>
+                </div>
+
+                <div className="complianceScorePill">
+                  <strong>{item.score}</strong>
+                  <span>/ {item.max_score}</span>
+                </div>
+              </div>
+
+              <h3>Requirement #{item.requirement_id || "-"}</h3>
+              <p>{item.requirement_text}</p>
+
+              <div className="actionItemMetaGrid">
+                <div>
+                  <span>Owner</span>
+                  <strong>{item.owner || "Unassigned"}</strong>
+                </div>
+                <div>
+                  <span>Priority</span>
+                  <strong>{item.priority}</strong>
+                </div>
+                <div>
+                  <span>Risk</span>
+                  <strong>{item.risk_level}</strong>
+                </div>
+                <div>
+                  <span>Weight</span>
+                  <strong>{item.weight}</strong>
+                </div>
+              </div>
+
+              <div className="complianceInlineGrid">
+                <label>
+                  Status
+                  <select
+                    value={item.compliance_status || "needs_review"}
+                    disabled={busy}
+                    onChange={(e) => updateComplianceItem(item.id, { compliance_status: e.target.value })}
+                  >
+                    <option value="compliant">Compliant</option>
+                    <option value="partially_compliant">Partially compliant</option>
+                    <option value="needs_review">Needs review</option>
+                    <option value="needs_clarification">Needs clarification</option>
+                    <option value="non_compliant">Non-compliant</option>
+                    <option value="not_started">Not started</option>
+                  </select>
+                </label>
+
+                <label>
+                  Score
+                  <input
+                    className="tableInput"
+                    type="number"
+                    min="0"
+                    max="100"
+                    defaultValue={item.score ?? 0}
+                    disabled={busy}
+                    onBlur={(e) => {
+                      const value = Number(e.target.value);
+                      if (Number.isFinite(value) && value !== item.score) {
+                        updateComplianceItem(item.id, { score: value });
+                      }
+                    }}
+                  />
+                </label>
+
+                <label>
+                  Owner
+                  <input
+                    className="tableInput"
+                    defaultValue={item.owner || ""}
+                    disabled={busy}
+                    onBlur={(e) => {
+                      if (e.target.value !== (item.owner || "")) {
+                        updateComplianceItem(item.id, { owner: e.target.value });
+                      }
+                    }}
+                  />
+                </label>
+              </div>
+
+              <div className="riskPlanGrid">
+                <label>
+                  Gap Summary
+                  <textarea
+                    className="tableTextarea"
+                    defaultValue={item.gap_summary || ""}
+                    disabled={busy}
+                    onBlur={(e) => {
+                      if (e.target.value !== (item.gap_summary || "")) {
+                        updateComplianceItem(item.id, { gap_summary: e.target.value });
+                      }
+                    }}
+                  />
+                </label>
+
+                <label>
+                  Recommended Action
+                  <textarea
+                    className="tableTextarea"
+                    defaultValue={item.recommended_action || ""}
+                    disabled={busy}
+                    onBlur={(e) => {
+                      if (e.target.value !== (item.recommended_action || "")) {
+                        updateComplianceItem(item.id, { recommended_action: e.target.value });
+                      }
+                    }}
+                  />
+                </label>
+              </div>
+
+              <div className="evidenceRelationGrid">
+                <ComplianceRelationBox title="Requirement ID" values={item.requirement_id ? [item.requirement_id] : []} />
+                <ComplianceRelationBox title="Response Item ID" values={item.response_item_id ? [item.response_item_id] : []} />
+                <ComplianceRelationBox title="Evidence IDs" values={item.evidence_item_ids || []} />
+              </div>
+            </article>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

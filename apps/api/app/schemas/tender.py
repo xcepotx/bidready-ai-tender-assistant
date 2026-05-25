@@ -491,3 +491,65 @@ class RiskItemUpdate(BaseModel):
 class GenerateRiskRegisterResponse(BaseModel):
     generated_count: int
     items: list[RiskItemResponse]
+
+class ComplianceItemResponse(BaseModel):
+    id: int
+    project_id: int
+    requirement_id: int | None
+    response_item_id: int | None
+    category: str
+    requirement_text: str
+    compliance_status: str
+    score: int
+    max_score: int
+    weight: float
+    owner: str | None
+    priority: str
+    risk_level: str
+    evidence_item_ids: list
+    evidence_coverage: str
+    gap_summary: str | None
+    recommended_action: str | None
+    notes: str | None
+    source_page: int | None
+    confidence: float | None
+    generation_mode: str
+    created_at: datetime
+    updated_at: datetime | None
+
+    class Config:
+        from_attributes = True
+
+
+class ComplianceItemUpdate(BaseModel):
+    compliance_status: str | None = None
+    score: int | None = None
+    owner: str | None = None
+    evidence_coverage: str | None = None
+    gap_summary: str | None = None
+    recommended_action: str | None = None
+    notes: str | None = None
+
+
+class ComplianceScorecardSummary(BaseModel):
+    total_items: int
+    weighted_score: float
+    score_percent: int
+    max_score: float
+    status_counts: dict
+    category_scores: list
+    evidence_coverage_counts: dict
+    high_risk_gaps: int
+    recommendation: str
+
+
+class ComplianceScorecardResponse(BaseModel):
+    summary: ComplianceScorecardSummary
+    items: list[ComplianceItemResponse]
+
+
+class GenerateComplianceScorecardResponse(BaseModel):
+    generated_count: int
+    summary: ComplianceScorecardSummary
+    items: list[ComplianceItemResponse]
+

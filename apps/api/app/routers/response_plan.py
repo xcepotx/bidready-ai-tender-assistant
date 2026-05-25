@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.models.tender import TenderProject, TenderRequirement
 from app.models.response_plan import TenderResponseItem
+from app.models.compliance_scorecard import TenderComplianceItem
 from app.schemas.tender import (
     GenerateResponsePlanResponse,
     ResponseItemResponse,
@@ -89,6 +90,12 @@ def generate_project_response_plan(
         .filter(TenderResponseItem.project_id == project_id)
         .all()
     )
+
+    # Compliance scorecard is a derived artifact from requirements/response/evidence.
+    # Clear old scorecard rows before response items are regenerated to avoid FK/stale-reference conflicts.
+    db.query(TenderComplianceItem).filter(
+        TenderComplianceItem.project_id == project_id
+    ).delete(synchronize_session=False)
     before = [snapshot_response_item(item) for item in old_items]
 
     db.query(TenderResponseItem).filter(
