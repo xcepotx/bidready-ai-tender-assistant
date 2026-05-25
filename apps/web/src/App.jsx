@@ -8,6 +8,7 @@ import ClarificationsView from "./views/ClarificationsView.jsx";
 import ActionStat from "./components/ActionStat.jsx";
 import ExecutiveMetric from "./components/ExecutiveMetric.jsx";
 import ExecutiveStage from "./components/ExecutiveStage.jsx";
+import EvidenceStat from "./components/EvidenceStat.jsx";
 function L(en, id) {
   return en || id || "";
 }
@@ -3472,15 +3473,6 @@ function EvidencePackView({
           )}
         </div>
       </div>
-    </div>
-  );
-}
-
-function EvidenceStat({ label, value }) {
-  return (
-    <div className="evidenceStat">
-      <strong>{value}</strong>
-      <span>{label}</span>
     </div>
   );
 }
