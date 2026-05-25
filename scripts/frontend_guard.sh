@@ -76,6 +76,29 @@ PY
 
 pass "frontend helper scope check passed"
 
+python3 - <<'PY_ORPHAN'
+from pathlib import Path
+import re
+import sys
+
+app = Path("apps/web/src/App.jsx").read_text(errors="ignore")
+
+bad_patterns = [
+    r"\n\)\s*\{\s*\n\s*const \[searchQuery, setSearchQuery\]",
+    r"\n\)\s*\{\s*\n\s*const \[[A-Za-z0-9_]+, set[A-Za-z0-9_]+\] = useState",
+]
+
+for pattern in bad_patterns:
+    match = re.search(pattern, app)
+    if match:
+        line = app[:match.start()].count("\n") + 1
+        print(f"❌ FAIL: possible orphan component body in App.jsx around line {line}")
+        sys.exit(1)
+
+print("✅ PASS: no orphan component body pattern found in App.jsx")
+PY_ORPHAN
+
+
 echo
 echo "===== Frontend Build ====="
 cd apps/web
