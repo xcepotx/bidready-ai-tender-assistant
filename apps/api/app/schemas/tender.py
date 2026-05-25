@@ -742,3 +742,72 @@ class AddendumImpactAnalysisResponse(BaseModel):
 class AddendumImpactGenerateResponse(AddendumImpactAnalysisResponse):
     generated_count: int
 
+class ClarificationResponseItemResponse(BaseModel):
+    id: int
+    project_id: int
+    clarification_id: int | None
+    requirement_id: int | None
+    category: str
+    question_text: str
+    reason: str | None
+    client_response: str | None
+    response_status: str
+    priority: str
+    risk_level: str
+    owner: str | None
+    due_date: str | None
+    sent_at: str | None
+    response_received_at: str | None
+    incorporated_at: str | None
+    impacted_artifacts: list
+    related_response_item_ids: list
+    related_compliance_item_ids: list
+    related_risk_item_ids: list
+    related_addendum_impact_ids: list
+    recommended_follow_up: str | None
+    notes: str | None
+    confidence: float | None
+    generation_mode: str
+    created_at: datetime
+    updated_at: datetime | None
+
+    class Config:
+        from_attributes = True
+
+
+class ClarificationResponseItemUpdate(BaseModel):
+    client_response: str | None = None
+    response_status: str | None = None
+    priority: str | None = None
+    risk_level: str | None = None
+    owner: str | None = None
+    due_date: str | None = None
+    sent_at: str | None = None
+    response_received_at: str | None = None
+    incorporated_at: str | None = None
+    recommended_follow_up: str | None = None
+    notes: str | None = None
+
+
+class ClarificationResponseSummaryResponse(BaseModel):
+    total_items: int
+    open_items: int
+    answered_items: int
+    overdue_items: int
+    high_priority_items: int
+    high_risk_items: int
+    completion_percent: int
+    status_counts: dict
+    priority_counts: dict
+    risk_counts: dict
+    recommendation: str
+
+
+class ClarificationResponseTrackerResponse(BaseModel):
+    summary: ClarificationResponseSummaryResponse
+    items: list[ClarificationResponseItemResponse]
+
+
+class ClarificationResponseGenerateResponse(ClarificationResponseTrackerResponse):
+    generated_count: int
+

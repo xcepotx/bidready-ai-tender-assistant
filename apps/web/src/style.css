@@ -4800,3 +4800,146 @@ button:hover {
     flex-direction: column;
   }
 }
+
+
+/* ===== Clarification Response Tracker ===== */
+
+.clarificationTrackerView .clarificationTrackerHeader {
+  background:
+    radial-gradient(circle at top right, rgba(14, 165, 233, 0.13), transparent 34%),
+    #ffffff;
+}
+
+.clarificationTrackerHero {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.clarificationProgressCard {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 20px;
+  padding: 16px;
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.06);
+}
+
+.clarificationProgressCard.warning {
+  background: #f0f9ff;
+  border-color: #bae6fd;
+}
+
+.clarificationProgressCard strong {
+  display: block;
+  font-size: 34px;
+  color: #0f172a;
+}
+
+.clarificationProgressCard span {
+  display: block;
+  font-size: 11px;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  margin-bottom: 6px;
+}
+
+.clarificationProgressCard p {
+  color: #475569;
+  margin: 6px 0 0;
+}
+
+.clarificationTrackerList {
+  display: grid;
+  gap: 14px;
+}
+
+.clarificationTrackerCard {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-left: 6px solid #94a3b8;
+  border-radius: 20px;
+  padding: 16px;
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.06);
+}
+
+.clarificationTrackerCard.open,
+.clarificationTrackerCard.sent {
+  border-left-color: #f59e0b;
+}
+
+.clarificationTrackerCard.answered,
+.clarificationTrackerCard.incorporated,
+.clarificationTrackerCard.closed {
+  border-left-color: #22c55e;
+}
+
+.clarificationTrackerCard.overdue {
+  border-left-color: #ef4444;
+}
+
+.clarificationTrackerTop {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+  margin-bottom: 10px;
+}
+
+.clarificationStatusPill {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 5px 10px;
+  margin-right: 6px;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background: #e2e8f0;
+  color: #334155;
+}
+
+.clarificationStatusPill.open,
+.clarificationStatusPill.sent {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.clarificationStatusPill.answered,
+.clarificationStatusPill.incorporated,
+.clarificationStatusPill.closed {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.clarificationStatusPill.overdue {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.clarificationInlineGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin: 12px 0;
+}
+
+.clarificationInlineGrid label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: #64748b;
+}
+
+@media (max-width: 900px) {
+  .clarificationTrackerHero,
+  .clarificationInlineGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .clarificationTrackerTop {
+    flex-direction: column;
+  }
+}
