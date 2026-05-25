@@ -47,6 +47,7 @@ import { useTenderMetadataDecisionGate } from "./hooks/useTenderMetadataDecision
 import { useTenderLanguageTemplate } from "./hooks/useTenderLanguageTemplate.js";
 import { useTenderApprovalDecision } from "./hooks/useTenderApprovalDecision.js";
 import { useTenderProjectIntake } from "./hooks/useTenderProjectIntake.js";
+import { useTenderRequirementEvidence } from "./hooks/useTenderRequirementEvidence.js";
 
 const emptyProjectForm = {
   title: "",
@@ -291,6 +292,13 @@ function App() {
     loadProjectData,
   });
 
+  const {
+    loadRequirementEvidence,
+  } = useTenderRequirementEvidence({
+    setMessage,
+    setRequirementEvidence,
+  });
+
   const selectedProject = useMemo(() => {
     return projects.find((item) => item.id === Number(selectedProjectId)) || null;
   }, [projects, selectedProjectId]);
@@ -412,20 +420,6 @@ function App() {
     }
   }
 
-  async function loadRequirementEvidence(requirementId) {
-    if (!requirementId) {
-      setRequirementEvidence(null);
-      return;
-    }
-
-    try {
-      const evidence = await apiFetch(`/api/v1/requirements/${requirementId}/evidence`);
-      setRequirementEvidence(evidence);
-    } catch (err) {
-      setRequirementEvidence(null);
-      setMessage(`Failed to load requirement evidence: ${err.message}`);
-    }
-  }
 
   useEffect(() => {
     checkHealth();
