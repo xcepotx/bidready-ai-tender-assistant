@@ -437,31 +437,10 @@ async function checkHealth() {
     setMessage("");
 
     try {
-      const internalApiKey = import.meta.env.VITE_INTERNAL_API_KEY || "";
-      const headers = new Headers();
-
-      if (internalApiKey) {
-        headers.set("X-Internal-API-Key", internalApiKey);
-      }
-
-      const res = await fetch(`/api/v1/projects/${selectedProjectId}/exports/checklist.xlsx`, {
-        headers,
-      });
-
-      if (!res.ok) {
-        const errorText = await res.text();
-        throw new Error(errorText || `HTTP ${res.status}`);
-      }
-
-      const blob = await res.blob();
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = `bidready_ai_tender_report_project_${selectedProjectId}.xlsx`;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.URL.revokeObjectURL(url);
+        await downloadApiFile(
+          `/api/v1/projects/${selectedProjectId}/exports/checklist.xlsx`,
+          `bidready_ai_tender_report_project_${selectedProjectId}.xlsx`
+        );
 
       setMessage("Readiness matrix exported.");
     } catch (err) {
@@ -692,31 +671,10 @@ async function checkHealth() {
     setMessage("");
 
     try {
-      const internalApiKey = import.meta.env.VITE_INTERNAL_API_KEY || "";
-      const headers = new Headers();
-
-      if (internalApiKey) {
-        headers.set("X-Internal-API-Key", internalApiKey);
-      }
-
-      const res = await fetch(`/api/v1/projects/${selectedProjectId}/exports/proposal-draft.docx`, {
-        headers,
-      });
-
-      if (!res.ok) {
-        const errorText = await res.text();
-        throw new Error(errorText || `HTTP ${res.status}`);
-      }
-
-      const blob = await res.blob();
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = `bidready_ai_proposal_draft_project_${selectedProjectId}.docx`;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.URL.revokeObjectURL(url);
+        await downloadApiFile(
+          `/api/v1/projects/${selectedProjectId}/exports/proposal-draft.docx`,
+          `bidready_ai_proposal_draft_project_${selectedProjectId}.docx`
+        );
 
       setMessage("Proposal draft exported.");
     } catch (err) {
