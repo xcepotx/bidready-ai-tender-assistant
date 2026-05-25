@@ -12,6 +12,7 @@ import EvidenceStat from "./components/EvidenceStat.jsx";
 import RiskStat from "./components/RiskStat.jsx";
 import ComplianceMetric from "./components/ComplianceMetric.jsx";
 import ComplianceRelationBox from "./components/ComplianceRelationBox.jsx";
+import DecisionList from "./components/DecisionList.jsx";
 function L(en, id) {
   return en || id || "";
 }
@@ -2428,23 +2429,6 @@ function DecisionGateCard({ gate, busy, generateDecisionGate, updateDecisionGate
           }}
         />
       </label>
-    </div>
-  );
-}
-
-function DecisionList({ title, items, danger = false }) {
-  return (
-    <div className={danger ? "decisionList danger" : "decisionList"}>
-      <h3>{title}</h3>
-      {items.length === 0 ? (
-        <p className="muted">No item.</p>
-      ) : (
-        <ul>
-          {items.map((item, index) => (
-            <li key={`${title}-${index}`}>{item}</li>
-          ))}
-        </ul>
-      )}
     </div>
   );
 }
