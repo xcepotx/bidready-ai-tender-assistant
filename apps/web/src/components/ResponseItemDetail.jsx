@@ -1,3 +1,4 @@
+import ResponseList from "./ResponseList.jsx";
 export default function ResponseItemDetail({ item, busy, updateResponseItem }) {
   return (
     <div className="detailContent responseDetail">

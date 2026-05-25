@@ -1,3 +1,4 @@
+import ProposalList from "./ProposalList.jsx";
 export default function ProposalSectionDetail({ section, busy, updateProposalSection }) {
   return (
     <div className="detailContent proposalDetail">

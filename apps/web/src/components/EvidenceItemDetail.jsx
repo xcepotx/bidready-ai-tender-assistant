@@ -1,3 +1,4 @@
+import RelationBox from "./RelationBox.jsx";
 export default function EvidenceItemDetail({ item, busy, updateEvidenceItem }) {
   return (
     <div className="detailContent evidenceDetail">

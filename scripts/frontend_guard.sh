@@ -104,6 +104,34 @@ PY_ORPHAN
 
 
 echo
+
+echo
+echo "===== CHECK_EXTRACTED_REACT_HOOK_IMPORTS ====="
+python3 - <<'PY_REACT_HOOKS'
+from pathlib import Path
+import re
+import sys
+
+bad = []
+
+for path in list(Path("apps/web/src/views").rglob("*.jsx")) + list(Path("apps/web/src/components").rglob("*.jsx")):
+    text = path.read_text(errors="ignore")
+
+    uses_hooks = any(re.search(rf"\b{hook}\s*\(", text) for hook in ["useState", "useEffect", "useMemo", "useCallback"])
+    has_react_hook_import = re.search(r'import\s*\{[^}]*\buse(State|Effect|Memo|Callback)\b[^}]*\}\s*from\s*["\']react["\']', text)
+
+    if uses_hooks and not has_react_hook_import:
+        bad.append(str(path))
+
+if bad:
+    print("Files using React hooks without explicit React hook import:")
+    for item in bad:
+        print("-", item)
+    sys.exit(1)
+
+print("✅ PASS: extracted React hook imports are explicit")
+PY_REACT_HOOKS
+
 echo "===== Frontend Build ====="
 cd apps/web
 npm run build

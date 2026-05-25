@@ -1,4 +1,5 @@
 import { useState } from "react";
+import ComplianceMetric from "../components/ComplianceMetric.jsx";
 
 export default function DecisionGateHistoryView({ decisionGateHistory = { summary: null, events: [] } }) {
   const [eventFilter, setEventFilter] = useState("all");
