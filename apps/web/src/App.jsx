@@ -27,6 +27,7 @@ import RfpMetadataCard from "./components/RfpMetadataCard.jsx";
 import BidBriefCard from "./components/BidBriefCard.jsx";
 import ReadinessSummaryCard from "./components/ReadinessSummaryCard.jsx";
 import LanguageSelector from "./components/LanguageSelector.jsx";
+import ActorSelector from "./components/ActorSelector.jsx";
 function L(en, id) {
   return en || id || "";
 }
@@ -1904,31 +1905,6 @@ async function apiFetch(path, options = {}) {
         </section>
       </section>
     </main>
-  );
-}
-
-function ActorSelector({ actorName, setActorName }) {
-  const actors = [
-    "bid_manager",
-    "solution_architect",
-    "commercial_team",
-    "security_compliance_team",
-    "delivery_manager",
-    "legal_team",
-    "resource_manager",
-  ];
-
-  return (
-    <div className="actorSelector">
-      <span>Acting as</span>
-      <select value={actorName} onChange={(e) => setActorName(e.target.value)}>
-        {actors.map((actor) => (
-          <option key={actor} value={actor}>
-            {actor}
-          </option>
-        ))}
-      </select>
-    </div>
   );
 }
 
