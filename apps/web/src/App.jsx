@@ -15,6 +15,7 @@ import ComplianceRelationBox from "./components/ComplianceRelationBox.jsx";
 import DecisionList from "./components/DecisionList.jsx";
 import MetadataField from "./components/MetadataField.jsx";
 import BriefList from "./components/BriefList.jsx";
+import RelationBox from "./components/RelationBox.jsx";
 function L(en, id) {
   return en || id || "";
 }
@@ -3552,15 +3553,6 @@ function EvidenceItemDetail({ item, busy, updateEvidenceItem }) {
           }}
         />
       </label>
-    </div>
-  );
-}
-
-function RelationBox({ title, values }) {
-  return (
-    <div className="relationBox">
-      <strong>{title}</strong>
-      {values.length === 0 ? <span>-</span> : <span>{values.join(", ")}</span>}
     </div>
   );
 }
