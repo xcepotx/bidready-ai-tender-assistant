@@ -845,3 +845,49 @@ class ProposalTemplateUpdate(BaseModel):
     footer_note: str | None = None
     notes: str | None = None
 
+class AuthUserResponse(BaseModel):
+    id: int
+    email: str
+    full_name: str | None
+    role: str
+    is_active: bool
+    created_at: datetime
+    updated_at: datetime | None
+    last_login_at: datetime | None
+
+    class Config:
+        from_attributes = True
+
+
+class AuthBootstrapRequest(BaseModel):
+    email: str
+    password: str
+    full_name: str | None = None
+
+
+class AuthLoginRequest(BaseModel):
+    email: str
+    password: str
+
+
+class AuthTokenResponse(BaseModel):
+    access_token: str
+    token_type: str
+    user: AuthUserResponse
+
+
+class AuthUserCreate(BaseModel):
+    email: str
+    password: str
+    full_name: str | None = None
+    role: str = "viewer"
+    is_active: bool = True
+
+
+class AuthUserUpdate(BaseModel):
+    email: str | None = None
+    password: str | None = None
+    full_name: str | None = None
+    role: str | None = None
+    is_active: bool | None = None
+

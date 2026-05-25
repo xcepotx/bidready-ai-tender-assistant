@@ -15,6 +15,9 @@ class Settings(BaseSettings):
     upload_dir: str = os.getenv("UPLOAD_DIR", "/app/uploads")
     export_dir: str = os.getenv("EXPORT_DIR", "/app/exports")
 
+    auth_secret_key: str = os.getenv("AUTH_SECRET_KEY", os.getenv("INTERNAL_API_KEY", "dev-insecure-auth-secret-change-me"))
+    auth_access_token_minutes: int = int(os.getenv("AUTH_ACCESS_TOKEN_MINUTES", "720"))
+
     @property
     def database_url(self) -> str:
         if self.database_url_override and self.database_url_override.startswith(("postgresql://", "postgresql+")):
