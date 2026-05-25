@@ -6,6 +6,7 @@ import ProjectViewTabs from "./components/ProjectViewTabs.jsx";
 import RequirementsView from "./views/RequirementsView.jsx";
 import ClarificationsView from "./views/ClarificationsView.jsx";
 import ActionStat from "./components/ActionStat.jsx";
+import ExecutiveMetric from "./components/ExecutiveMetric.jsx";
 function L(en, id) {
   return en || id || "";
 }
@@ -2302,15 +2303,6 @@ function ExecutiveDashboardCard({
           )}
         </div>
       </div>
-    </div>
-  );
-}
-
-function ExecutiveMetric({ label, value, tone = "neutral" }) {
-  return (
-    <div className={`executiveMetric ${tone}`}>
-      <strong>{value}</strong>
-      <span>{label}</span>
     </div>
   );
 }
