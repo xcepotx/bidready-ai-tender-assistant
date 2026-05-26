@@ -25,7 +25,6 @@ import ActionItemCard from "./components/ActionItemCard.jsx";
 import DecisionGateCard from "./components/DecisionGateCard.jsx";
 import RfpMetadataCard from "./components/RfpMetadataCard.jsx";
 import BidBriefCard from "./components/BidBriefCard.jsx";
-import ReadinessSummaryCard from "./components/ReadinessSummaryCard.jsx";
 import LanguageSelector from "./components/LanguageSelector.jsx";
 import ActorSelector from "./components/ActorSelector.jsx";
 import AuditLogView from "./views/AuditLogView.jsx";
