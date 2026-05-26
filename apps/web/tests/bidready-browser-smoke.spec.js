@@ -14,10 +14,17 @@ async function assertNoFatalBrowserErrors(fatalErrors) {
 
 async function clickByExactTextIfVisible(page, label) {
   const escaped = escapeRegExp(label);
-  const roleButton = page.getByRole("button", { name: new RegExp(`^${escaped}$`, "i") }).first();
+  const exactRoleButton = page.getByRole("button", { name: new RegExp(`^${escaped}$`, "i") }).first();
 
-  if (await roleButton.isVisible().catch(() => false)) {
-    await roleButton.click();
+  if (await exactRoleButton.isVisible().catch(() => false)) {
+    await exactRoleButton.click();
+    return true;
+  }
+
+  const startsWithRoleButton = page.getByRole("button", { name: new RegExp(`^${escaped}(\\s|$)`, "i") }).first();
+
+  if (await startsWithRoleButton.isVisible().catch(() => false)) {
+    await startsWithRoleButton.click();
     return true;
   }
 
@@ -25,6 +32,13 @@ async function clickByExactTextIfVisible(page, label) {
 
   if (await exactText.isVisible().catch(() => false)) {
     await exactText.click();
+    return true;
+  }
+
+  const startsWithText = page.getByText(new RegExp(`^${escaped}(\\s|$)`, "i")).first();
+
+  if (await startsWithText.isVisible().catch(() => false)) {
+    await startsWithText.click();
     return true;
   }
 
@@ -70,6 +84,20 @@ async function clickTabs(page, fatalErrors, tabs) {
   return clicked;
 }
 
+async function clickRequiredTabAndAssertContent(page, fatalErrors, label, expectedContent) {
+  const didClick = await clickByExactTextIfVisible(page, label);
+
+  expect(didClick, `Expected to find and click tab: ${label}`).toBe(true);
+
+  await page.waitForTimeout(700);
+  await assertNoFatalBrowserErrors(fatalErrors);
+
+  const bodyText = await page.locator("body").innerText();
+
+  expect(bodyText.trim().length, `Body should not be blank after clicking ${label}`).toBeGreaterThan(80);
+  expect(bodyText, `Expected content after clicking ${label}: ${expectedContent}`).toMatch(expectedContent);
+}
+
 test("BidReady browser smoke: main workspace tabs render without runtime errors", async ({ page }) => {
   const fatalErrors = [];
 
@@ -105,16 +133,28 @@ test("BidReady browser smoke: main workspace tabs render without runtime errors"
   ).toBeGreaterThanOrEqual(3);
 
   const groupedTabs = [
-    { group: "Governance", tabs: ["Compliance", "Risk", "Approval", "Gate History"] },
-    { group: "Execution", tabs: ["Actions", "Clarification Tracker", "Addendum"] },
-    { group: "Output", tabs: ["Proposal", "Evidence", "Executive Pack", "Audit"] },
+    { group: "Governance", tabs: ["Compliance", "Traceability", "Approvals", "Gate History", "Audit"] },
+    { group: "Execution", tabs: ["Risks", "Actions", "Addendum", "Clarify Tracker"] },
+    { group: "Output", tabs: ["Executive Pack", "Proposal Template"] },
   ];
 
   for (const group of groupedTabs) {
-    await clickByExactTextIfVisible(page, group.group);
+    const groupClicked = await clickByExactTextIfVisible(page, group.group);
+    expect(groupClicked, `Expected to click group: ${group.group}`).toBe(true);
+
     await page.waitForTimeout(250);
-    await clickTabs(page, fatalErrors, group.tabs);
+
+    const clickedGroupTabs = await clickTabs(page, fatalErrors, group.tabs);
+
+    expect(
+      clickedGroupTabs.length,
+      `Expected to click at least one tab in ${group.group}. Clicked: ${clickedGroupTabs.join(", ")}`
+    ).toBeGreaterThanOrEqual(1);
   }
+
+  await clickByExactTextIfVisible(page, "Governance");
+  await page.waitForTimeout(250);
+  await clickRequiredTabAndAssertContent(page, fatalErrors, "Traceability", /Traceability Matrix|Requirement-to-submission|Peta coverage/i);
 
   await assertNoFatalBrowserErrors(fatalErrors);
 });
