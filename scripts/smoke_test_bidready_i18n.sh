@@ -543,12 +543,55 @@ grep -q "OK DOCX" "$TMP_DIR/docx_validation.txt" \
   && pass "DOCX i18n content validated" \
   || fail "DOCX i18n content validation failed"
 
+
+log "Validate Workflow Status"
+WORKFLOW_JSON="$TMP_DIR/workflow_status.json"
+curl -sS -f -o "$WORKFLOW_JSON" \
+  -H "X-Internal-API-Key: $KEY" \
+  "$API_BASE/api/v1/projects/$PROJECT_ID/workflow-status"
+
+python3 - "$WORKFLOW_JSON" <<'WFJSON'
+import json
+import sys
+
+path = sys.argv[1]
+with open(path, "r", encoding="utf-8") as fh:
+    data = json.load(fh)
+
+if not isinstance(data.get("overall_progress"), int):
+    raise SystemExit("overall_progress must be int")
+
+if not isinstance(data.get("current_stage"), str) or not data.get("current_stage"):
+    raise SystemExit("current_stage must be non-empty string")
+
+steps = data.get("steps")
+if not isinstance(steps, list) or not steps:
+    raise SystemExit("steps must be non-empty list")
+
+next_actions = data.get("next_actions")
+if not isinstance(next_actions, list):
+    raise SystemExit("next_actions must be list")
+
+if not any(isinstance(step, dict) and step.get("key") == "response_plan" for step in steps):
+    raise SystemExit("response_plan step not found")
+
+print("OK workflow status JSON")
+WFJSON
+
+pass "Workflow status has numeric progress"
+pass "Workflow status has current stage"
+pass "Workflow status has steps"
+pass "Workflow status has next actions"
+pass "Workflow status includes response plan step"
+
 log "Final Summary"
 echo "Project ID: $PROJECT_ID"
 echo "API Base: $API_BASE"
 echo "Artifacts:"
 echo "- $TMP_DIR/bidready_ai_tender_report_project_${PROJECT_ID}_id.xlsx"
 echo "- $TMP_DIR/bidready_ai_proposal_draft_project_${PROJECT_ID}_id.docx"
+
+
 echo "Passed checks: $PASS_COUNT"
 echo "Failed checks: $FAIL_COUNT"
 echo

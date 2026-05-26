@@ -27,6 +27,7 @@ from app.services.excel_exporter import export_project_checklist
 from app.services.readiness_service import compute_readiness_summary
 from app.services.ai_gateway import build_rule_based_bid_brief
 from app.services.i18n_service import get_project_output_language
+from app.services.project_workflow_status import build_project_workflow_status
 
 
 router = APIRouter(prefix="/api/v1/projects", tags=["projects"])
@@ -50,6 +51,14 @@ def create_project(payload: ProjectCreate, db: Session = Depends(get_db)):
 def list_projects(db: Session = Depends(get_db)):
     return db.query(TenderProject).order_by(TenderProject.id.desc()).all()
 
+
+
+@router.get("/{project_id}/workflow-status")
+def get_project_workflow_status(project_id: int, db: Session = Depends(get_db)):
+    project = db.get(TenderProject, project_id)
+    if project is None:
+        raise HTTPException(status_code=404, detail="Project not found")
+    return build_project_workflow_status(db, project_id)
 
 @router.get("/{project_id}", response_model=ProjectResponse)
 def get_project(project_id: int, db: Session = Depends(get_db)):
