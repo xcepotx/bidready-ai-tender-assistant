@@ -11,7 +11,11 @@ from app.db.session import get_db
 from app.models.tender import TenderProject, TenderDocument, DocumentPage, TenderRequirement
 from app.models.clarification import TenderClarificationQuestion
 from app.models.response_plan import TenderResponseItem
+from app.models.proposal_outline import TenderProposalSection
 from app.models.evidence_pack import TenderEvidenceItem
+from app.models.action_item import TenderActionItem
+from app.models.risk_item import TenderRiskItem
+from app.models.compliance_scorecard import TenderComplianceItem
 from app.models.decision_gate import TenderDecisionGate
 from app.schemas.tender import (
     ProjectCreate,
@@ -24,6 +28,7 @@ from app.schemas.tender import (
 from app.services.pdf_parser import extract_pdf_pages, write_extracted_text
 from app.services.requirement_extractor import extract_requirements_from_pages
 from app.services.excel_exporter import export_project_checklist
+from app.services.traceability_excel_exporter import export_traceability_matrix_xlsx
 from app.services.readiness_service import compute_readiness_summary
 from app.services.ai_gateway import build_rule_based_bid_brief
 from app.services.i18n_service import get_project_output_language
@@ -367,6 +372,96 @@ def export_project_requirements_excel(project_id: int, db: Session = Depends(get
     return FileResponse(
         path=str(output_path),
         filename=f"bidready_ai_tender_report_project_{project_id}.xlsx",
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
+
+
+@router.get("/{project_id}/exports/traceability-matrix.xlsx")
+def export_project_traceability_matrix_excel(project_id: int, db: Session = Depends(get_db)):
+    project = db.get(TenderProject, project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    requirements = (
+        db.query(TenderRequirement)
+        .filter(TenderRequirement.project_id == project_id)
+        .order_by(TenderRequirement.category.asc(), TenderRequirement.id.asc())
+        .all()
+    )
+
+    if not requirements:
+        raise HTTPException(status_code=400, detail="No requirements found. Run extraction first.")
+
+    clarifications = (
+        db.query(TenderClarificationQuestion)
+        .filter(TenderClarificationQuestion.project_id == project_id)
+        .order_by(TenderClarificationQuestion.priority.desc(), TenderClarificationQuestion.id.asc())
+        .all()
+    )
+
+    response_items = (
+        db.query(TenderResponseItem)
+        .filter(TenderResponseItem.project_id == project_id)
+        .order_by(TenderResponseItem.category.asc(), TenderResponseItem.id.asc())
+        .all()
+    )
+
+    proposal_sections = (
+        db.query(TenderProposalSection)
+        .filter(TenderProposalSection.project_id == project_id)
+        .order_by(TenderProposalSection.section_order.asc(), TenderProposalSection.id.asc())
+        .all()
+    )
+
+    evidence_items = (
+        db.query(TenderEvidenceItem)
+        .filter(TenderEvidenceItem.project_id == project_id)
+        .order_by(TenderEvidenceItem.priority.desc(), TenderEvidenceItem.evidence_category.asc(), TenderEvidenceItem.id.asc())
+        .all()
+    )
+
+    compliance_items = (
+        db.query(TenderComplianceItem)
+        .filter(TenderComplianceItem.project_id == project_id)
+        .order_by(TenderComplianceItem.score.asc(), TenderComplianceItem.id.asc())
+        .all()
+    )
+
+    risk_items = (
+        db.query(TenderRiskItem)
+        .filter(TenderRiskItem.project_id == project_id)
+        .order_by(TenderRiskItem.severity.asc(), TenderRiskItem.id.asc())
+        .all()
+    )
+
+    action_items = (
+        db.query(TenderActionItem)
+        .filter(TenderActionItem.project_id == project_id)
+        .order_by(TenderActionItem.priority.asc(), TenderActionItem.status.asc(), TenderActionItem.id.asc())
+        .all()
+    )
+
+    output_language = get_project_output_language(db, project_id)
+    export_dir = Path(settings.export_dir) / f"project_{project_id}"
+    output_path = export_dir / f"bidready_ai_traceability_matrix_project_{project_id}.xlsx"
+
+    export_traceability_matrix_xlsx(
+        project=project,
+        requirements=requirements,
+        clarifications=clarifications,
+        response_items=response_items,
+        proposal_sections=proposal_sections,
+        evidence_items=evidence_items,
+        compliance_items=compliance_items,
+        risk_items=risk_items,
+        action_items=action_items,
+        output_path=str(output_path),
+        output_language=output_language,
+    )
+
+    return FileResponse(
+        path=str(output_path),
+        filename=f"bidready_ai_traceability_matrix_project_{project_id}.xlsx",
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     )
 

@@ -63,6 +63,25 @@ export function useTenderDownloads({
     }
   }
 
+  async function downloadTraceabilityMatrix() {
+    if (!selectedProjectId) return;
+    setBusy(true);
+    setMessage("");
+
+    try {
+      await downloadFile(
+        `/api/v1/projects/${selectedProjectId}/exports/traceability-matrix.xlsx`,
+        `bidready_ai_traceability_matrix_project_${selectedProjectId}.xlsx`,
+        apiFetch
+      );
+      setMessage("Traceability matrix Excel exported.");
+    } catch (err) {
+      setMessage(`Traceability export failed: ${err.message}`);
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function downloadExecutivePack() {
     if (!selectedProjectId) {
       setMessage("Select a bid project first.");
@@ -88,6 +107,7 @@ export function useTenderDownloads({
   return {
     downloadReadinessMatrix,
     downloadProposalDraft,
+    downloadTraceabilityMatrix,
     downloadExecutivePack,
   };
 }

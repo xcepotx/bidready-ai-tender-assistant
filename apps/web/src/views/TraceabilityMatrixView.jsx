@@ -138,6 +138,7 @@ export default function TraceabilityMatrixView({
   riskItems = [],
   actionItems = [],
   languageSetting = { output_language: "en" },
+  downloadTraceabilityMatrix = null,
 }) {
   const uiLanguage = String(languageSetting?.output_language || "en");
   const isId = uiLanguage.startsWith("id");
@@ -314,6 +315,15 @@ export default function TraceabilityMatrixView({
             )}
           </p>
         </div>
+
+        <button
+          type="button"
+          className="regenerateAllButton"
+          disabled={!downloadTraceabilityMatrix}
+          onClick={downloadTraceabilityMatrix}
+        >
+          {L("Export Traceability Excel", "Export Traceability Excel")}
+        </button>
       </div>
 
       <div className="traceabilityMetricGrid">

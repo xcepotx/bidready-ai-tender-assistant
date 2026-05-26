@@ -121,6 +121,7 @@ function App() {
   const {
     downloadReadinessMatrix,
     downloadProposalDraft,
+    downloadTraceabilityMatrix,
     downloadExecutivePack,
   } = useTenderDownloads({
     selectedProjectId,
@@ -753,6 +754,7 @@ useEffect(() => {
               generateResponsePlan={generateResponsePlan}
               requirements={requirements}
               languageSetting={languageSetting}
+              downloadTraceabilityMatrix={downloadTraceabilityMatrix}
             />
           )}
 
