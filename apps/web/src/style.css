@@ -6126,3 +6126,150 @@ button:hover {
   color: #334155;
 }
 
+/* ===== Executive Pack UI polish ===== */
+.executivePackView {
+  gap: 1.25rem;
+}
+
+.executivePackHeader {
+  align-items: center;
+  background: linear-gradient(135deg, #ffffff 0%, #eef6ff 48%, #f8fafc 100%);
+  border: 1px solid #dbeafe;
+  border-radius: 1.35rem;
+  padding: 1.25rem;
+}
+
+.executivePackPrimaryButton {
+  white-space: nowrap;
+  box-shadow: 0 16px 32px rgba(11, 29, 58, 0.16);
+}
+
+.executivePackHero {
+  display: grid;
+  grid-template-columns: minmax(280px, 0.85fr) minmax(320px, 1.15fr);
+  gap: 1rem;
+}
+
+.executivePackPrimaryCard,
+.executivePackChecklistCard,
+.executivePackUsageCard {
+  border: 1px solid #e2e8f0;
+  border-radius: 1.2rem;
+  background: #ffffff;
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.06);
+}
+
+.executivePackPrimaryCard {
+  padding: 1.25rem;
+  background: linear-gradient(180deg, #0B1D3A 0%, #12335f 100%);
+  color: #ffffff;
+}
+
+.executivePackPrimaryCard h3 {
+  margin: 0.55rem 0;
+  color: #ffffff;
+  font-size: 1.35rem;
+}
+
+.executivePackPrimaryCard p,
+.executivePackPrimaryCard li {
+  color: rgba(255, 255, 255, 0.84);
+}
+
+.executivePackPrimaryCard ul {
+  margin: 1rem 0 0;
+  padding-left: 1.1rem;
+}
+
+.executivePackPrimaryCard li + li {
+  margin-top: 0.45rem;
+}
+
+.executivePackKicker {
+  display: inline-flex;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.15);
+  padding: 0.35rem 0.6rem;
+  color: #dbeafe;
+  font-size: 0.72rem;
+  font-weight: 950;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.executivePackChecklistCard {
+  padding: 1.1rem;
+}
+
+.executivePackChecklistCard h3,
+.executivePackUsageCard h3 {
+  margin-top: 0;
+  color: #0B1D3A;
+}
+
+.executivePackFileGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 0.7rem;
+}
+
+.executivePackFileCard {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.95rem;
+  background: #f8fafc;
+  padding: 0.8rem;
+}
+
+.executivePackFileCard.important {
+  border-color: #bfdbfe;
+  background: #eff6ff;
+}
+
+.executivePackFileCard strong {
+  color: #0B1D3A;
+  font-size: 0.9rem;
+}
+
+.executivePackFileCard span {
+  color: #64748b;
+  font-size: 0.78rem;
+  word-break: break-word;
+}
+
+.executivePackUsageGrid {
+  display: grid;
+  grid-template-columns: minmax(280px, 1fr) minmax(280px, 1fr);
+  gap: 1rem;
+}
+
+.executivePackUsageCard {
+  padding: 1.1rem;
+}
+
+.executivePackUsageCard ol {
+  margin: 0;
+  padding-left: 1.15rem;
+}
+
+.executivePackUsageCard li + li {
+  margin-top: 0.45rem;
+}
+
+@media (max-width: 980px) {
+  .executivePackHeader {
+    align-items: stretch;
+  }
+
+  .executivePackHero,
+  .executivePackUsageGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .executivePackPrimaryButton {
+    width: 100%;
+  }
+}
+

@@ -131,6 +131,12 @@ function App() {
     setMessage,
   });
 
+  const executivePackUiLanguage = String(
+    languageSetting?.output_language || languageSetting?.outputLanguage || languageSetting?.output || "en"
+  );
+  const EP = (en, id) => (executivePackUiLanguage.toLowerCase().startsWith("id") ? id : en);
+
+
   const {
     updateRequirement,
     updateClarification,
@@ -865,27 +871,113 @@ useEffect(() => {
 
           {activeProjectView === "executivePack" && (
             <div className="workspaceView executivePackView">
-              <div className="viewHeader">
+              <div className="viewHeader executivePackHeader">
                 <div>
-                  <p className="eyebrow">Executive Pack</p>
-                  <h2>One-click executive export package</h2>
+                  <p className="eyebrow">{EP("Executive Pack", "Paket Eksekutif")}</p>
+                  <h2>{EP("Final handoff package for owner review and governance", "Paket final untuk review owner dan governance")}</h2>
                   <p className="muted">
-                    Download ZIP package containing Excel report, DOCX proposal draft, executive summary, governance snapshots, risks, actions, clarifications, addendum impact, and audit logs.
+                    {EP(
+                      "Download one ZIP containing the proposal draft, tender report, traceability matrix, executive summary, README, governance snapshots, and audit logs.",
+                      "Download satu ZIP berisi draft proposal, laporan tender, matriks traceability, ringkasan eksekutif, README, snapshot governance, dan audit log."
+                    )}
                   </p>
+                </div>
+
+                <button
+                  type="button"
+                  className="executivePackButton executivePackPrimaryButton"
+                  disabled={busy}
+                  onClick={downloadExecutivePack}
+                >
+                  {EP("Download Executive Pack ZIP", "Download ZIP Paket Eksekutif")}
+                </button>
+              </div>
+
+              <div className="executivePackHero">
+                <div className="executivePackPrimaryCard">
+                  <span className="executivePackKicker">{EP("Recommended for final review", "Direkomendasikan untuk review final")}</span>
+                  <h3>{EP("What this package is for", "Untuk apa paket ini digunakan")}</h3>
+                  <p>
+                    {EP(
+                      "Use this ZIP when sending a consolidated bid package to the owner, proposal lead, compliance reviewer, or internal approver.",
+                      "Gunakan ZIP ini saat mengirim paket bid terkonsolidasi ke owner, proposal lead, reviewer compliance, atau approver internal."
+                    )}
+                  </p>
+                  <ul>
+                    <li>{EP("Owner-level overview and decision context", "Overview level owner dan konteks keputusan")}</li>
+                    <li>{EP("Proposal draft ready for final editing", "Draft proposal siap untuk editing final")}</li>
+                    <li>{EP("Requirement traceability and evidence coverage", "Traceability requirement dan coverage evidence")}</li>
+                    <li>{EP("Governance artifacts for audit and approval", "Artifact governance untuk audit dan approval")}</li>
+                  </ul>
+                </div>
+
+                <div className="executivePackChecklistCard">
+                  <h3>{EP("Included in ZIP", "Isi di dalam ZIP")}</h3>
+                  <div className="executivePackFileGrid">
+                    <div className="executivePackFileCard important">
+                      <strong>{EP("Tender Report", "Laporan Tender")}</strong>
+                      <span>bidready_ai_tender_report.xlsx</span>
+                    </div>
+                    <div className="executivePackFileCard important">
+                      <strong>{EP("Proposal Draft", "Draft Proposal")}</strong>
+                      <span>bidready_ai_proposal_draft.docx</span>
+                    </div>
+                    <div className="executivePackFileCard important">
+                      <strong>{EP("Traceability Matrix", "Matriks Traceability")}</strong>
+                      <span>bidready_ai_traceability_matrix.xlsx</span>
+                    </div>
+                    <div className="executivePackFileCard">
+                      <strong>README</strong>
+                      <span>README.md</span>
+                    </div>
+                    <div className="executivePackFileCard">
+                      <strong>{EP("Executive Summary", "Ringkasan Eksekutif")}</strong>
+                      <span>executive_summary.md / .json</span>
+                    </div>
+                    <div className="executivePackFileCard">
+                      <strong>{EP("Decision Gate", "Decision Gate")}</strong>
+                      <span>decision_gate.json + history</span>
+                    </div>
+                    <div className="executivePackFileCard">
+                      <strong>{EP("Governance Data", "Data Governance")}</strong>
+                      <span>{EP("approval, compliance, risk, actions", "approval, compliance, risk, action")}</span>
+                    </div>
+                    <div className="executivePackFileCard">
+                      <strong>{EP("Audit Trail", "Audit Trail")}</strong>
+                      <span>audit_logs.json</span>
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              <div className="sectionBox">
-                <h3>Included Files</h3>
-                <ul className="compactList">
-                  <li>bidready_ai_tender_report.xlsx</li>
-                  <li>bidready_ai_proposal_draft.docx</li>
-                  <li>executive_summary.md / executive_summary.json</li>
-                  <li>decision_gate.json and decision_gate_history.json</li>
-                  <li>approval_workflow.json, compliance_scorecard.json, risk_register.json</li>
-                  <li>action_tracker.json, clarification_response_tracker.json, addendum_impact_analysis.json</li>
-                  <li>audit_logs.json</li>
-                </ul>
+              <div className="executivePackUsageGrid">
+                <div className="sectionBox executivePackUsageCard">
+                  <h3>{EP("Fast review path", "Alur review cepat")}</h3>
+                  <ol>
+                    <li>{EP("Open README.md to understand the package contents.", "Buka README.md untuk memahami isi paket.")}</li>
+                    <li>{EP("Open executive_summary.md for the high-level project view.", "Buka executive_summary.md untuk melihat overview project.")}</li>
+                    <li>{EP("Open bidready_ai_traceability_matrix.xlsx to inspect requirement gaps.", "Buka bidready_ai_traceability_matrix.xlsx untuk mengecek gap requirement.")}</li>
+                    <li>{EP("Open bidready_ai_proposal_draft.docx for final proposal review.", "Buka bidready_ai_proposal_draft.docx untuk review final proposal.")}</li>
+                  </ol>
+                </div>
+
+                <div className="sectionBox executivePackUsageCard">
+                  <h3>{EP("Audit and integration files", "File audit dan integrasi")}</h3>
+                  <p className="muted">
+                    {EP(
+                      "JSON files are included for audit trail, approval evidence, workflow review, and future integration with external systems.",
+                      "File JSON disertakan untuk audit trail, evidence approval, review workflow, dan integrasi dengan sistem eksternal di masa depan."
+                    )}
+                  </p>
+                  <ul className="compactList">
+                    <li>approval_workflow.json</li>
+                    <li>compliance_scorecard.json</li>
+                    <li>risk_register.json</li>
+                    <li>action_tracker.json</li>
+                    <li>clarification_response_tracker.json</li>
+                    <li>addendum_impact_analysis.json</li>
+                  </ul>
+                </div>
               </div>
             </div>
           )}
