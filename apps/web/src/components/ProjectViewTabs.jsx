@@ -13,6 +13,7 @@ function ProjectViewTabs({
   complianceScorecard = { summary: null, items: [] },
   riskItems = [],
   actionItems = [],
+  requirements = [],
 }) {
   const isIdUi = uiLanguage === "id";
   const L = (en, id) => (isIdUi ? id : en);
@@ -37,6 +38,7 @@ function ProjectViewTabs({
       description: L("Compliance, approval, and audit controls", "Kontrol compliance, approval, dan audit"),
       tabs: [
         { key: "compliance", label: L("Compliance", "Compliance"), badge: complianceScorecard?.summary?.total_items ?? complianceScorecard?.items?.length ?? 0 },
+        { key: "traceability", label: L("Traceability", "Traceability"), badge: requirements?.length ?? 0 },
         { key: "approvals", label: L("Approvals", "Approval"), badge: approvalWorkflow?.summary?.pending_steps ?? approvalWorkflow?.steps?.length ?? 0 },
         { key: "gateHistory", label: L("Gate History", "Riwayat Gate"), badge: decisionGateHistory?.summary?.total_events ?? decisionGateHistory?.events?.length ?? 0 },
         { key: "audit", label: L("Audit", "Audit") },

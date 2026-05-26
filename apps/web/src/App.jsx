@@ -57,6 +57,7 @@ import ProposalTemplateView from "./views/ProposalTemplateView.jsx";
 import ClarificationResponseTrackerView from "./views/ClarificationResponseTrackerView.jsx";
 import AddendumImpactView from "./views/AddendumImpactView.jsx";
 import ApprovalWorkflowView from "./views/ApprovalWorkflowView.jsx";
+import TraceabilityMatrixView from "./views/TraceabilityMatrixView.jsx";
 
 const emptyProjectForm = {
   title: "",
@@ -680,6 +681,7 @@ useEffect(() => {
             complianceScorecard={complianceScorecard}
             riskItems={riskItems}
             actionItems={actionItems}
+            requirements={requirements}
           />
 
           {activeProjectView === "summary" && (
@@ -790,6 +792,20 @@ useEffect(() => {
               busy={busy}
               generateComplianceScorecard={generateComplianceScorecard}
               updateComplianceItem={updateComplianceItem}
+            />
+          )}
+
+          {activeProjectView === "traceability" && (
+            <TraceabilityMatrixView
+              requirements={requirements}
+              responsePlan={responsePlan}
+              evidencePack={evidencePack}
+              proposalOutline={proposalOutline}
+              clarifications={clarifications}
+              complianceScorecard={complianceScorecard}
+              riskItems={riskItems}
+              actionItems={actionItems}
+              languageSetting={languageSetting}
             />
           )}
 
