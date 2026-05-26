@@ -1,3 +1,28 @@
+function parseActionDueDate(value) {
+  if (!value) return null;
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function isActionDone(item) {
+  return ["done", "closed", "completed", "cancelled", "canceled"].includes(String(item.status || "").toLowerCase());
+}
+
+function isActionOverdue(item) {
+  const dueDate = parseActionDueDate(item.due_date);
+  if (!dueDate || isActionDone(item)) return false;
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  dueDate.setHours(0, 0, 0, 0);
+
+  return dueDate < today;
+}
+
+function isActionUnassigned(item) {
+  return !String(item.owner || "").trim();
+}
+
 export default function ActionItemCard({ item, busy, updateActionItem }) {
   const relatedCount =
     (item.related_requirement_ids?.length || 0) +
@@ -6,12 +31,18 @@ export default function ActionItemCard({ item, busy, updateActionItem }) {
     (item.related_evidence_item_ids?.length || 0) +
     (item.related_proposal_section_ids?.length || 0);
 
+  const overdue = isActionOverdue(item);
+  const unassigned = isActionUnassigned(item);
+  const done = isActionDone(item);
+
   return (
-    <article className={`actionItemCard ${item.priority || "medium"} ${item.status || "open"}`}>
+    <article className={`actionItemCard ${item.priority || "medium"} ${item.status || "open"} ${overdue ? "overdue" : ""} ${unassigned ? "unassigned" : ""} ${done ? "done" : ""}`}>
       <div className="actionItemTop">
         <div>
           <span className={`priorityPill ${item.priority}`}>{item.priority}</span>
           <span className="sourcePill">{item.source_type}</span>
+          {overdue && <span className="actionAlertPill overdue">Overdue</span>}
+          {unassigned && <span className="actionAlertPill unassigned">Unassigned</span>}
         </div>
         <select
           value={item.status || "open"}

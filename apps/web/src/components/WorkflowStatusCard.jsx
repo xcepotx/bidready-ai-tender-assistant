@@ -53,6 +53,33 @@ export default function WorkflowStatusCard({ workflowStatus }) {
 
   const steps = Array.isArray(workflowStatus.steps) ? workflowStatus.steps : [];
   const nextActions = Array.isArray(workflowStatus.next_actions) ? workflowStatus.next_actions : [];
+  const counts = workflowStatus.counts || {};
+  const actionHealthItems = [
+    {
+      key: "open",
+      label: L("Open actions", "Action open"),
+      value: counts.open_actions ?? 0,
+      tone: (counts.open_actions ?? 0) > 0 ? "warning" : "ok",
+    },
+    {
+      key: "overdue",
+      label: L("Overdue", "Terlambat"),
+      value: counts.overdue_actions ?? 0,
+      tone: (counts.overdue_actions ?? 0) > 0 ? "danger" : "ok",
+    },
+    {
+      key: "unassigned",
+      label: L("Unassigned", "Belum ada owner"),
+      value: counts.unassigned_actions ?? 0,
+      tone: (counts.unassigned_actions ?? 0) > 0 ? "warning" : "ok",
+    },
+    {
+      key: "total",
+      label: L("Total actions", "Total action"),
+      value: counts.action_items ?? 0,
+      tone: "neutral",
+    },
+  ];
 
   return (
     <div className="summaryPanel workflowStatusCard">
@@ -87,6 +114,22 @@ export default function WorkflowStatusCard({ workflowStatus }) {
             </div>
           </div>
         ))}
+      </div>
+
+      <div className="workflowActionHealth">
+        <div>
+          <p className="eyebrow dark">{L("Action Health", "Kondisi Action")}</p>
+          <h4>{L("Team follow-up snapshot", "Ringkasan follow-up tim")}</h4>
+        </div>
+
+        <div className="workflowActionHealthGrid">
+          {actionHealthItems.map((item) => (
+            <div className={`workflowActionHealthItem ${item.tone}`} key={item.key}>
+              <strong>{item.value}</strong>
+              <span>{item.label}</span>
+            </div>
+          ))}
+        </div>
       </div>
 
       <div className="workflowNextActions">

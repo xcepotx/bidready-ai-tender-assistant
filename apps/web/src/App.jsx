@@ -1454,8 +1454,56 @@ function ActionTrackerView({
   const [priorityFilter, setPriorityFilter] = useState("all");
   const [ownerFilter, setOwnerFilter] = useState("all");
   const [sourceFilter, setSourceFilter] = useState("all");
+  const [quickFilter, setQuickFilter] = useState("all");
 
   const safeItems = Array.isArray(actionItems) ? actionItems : [];
+  const doneStatuses = new Set(["done", "closed", "completed", "cancelled", "canceled"]);
+
+  function parseActionDueDate(value) {
+    if (!value) return null;
+    const parsed = new Date(value);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  }
+
+  function isActionDone(item) {
+    return doneStatuses.has(String(item.status || "").toLowerCase());
+  }
+
+  function isActionUnassigned(item) {
+    return !String(item.owner || "").trim();
+  }
+
+  function isActionOverdue(item) {
+    const dueDate = parseActionDueDate(item.due_date);
+    if (!dueDate || isActionDone(item)) return false;
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    dueDate.setHours(0, 0, 0, 0);
+
+    return dueDate < today;
+  }
+
+  function priorityRank(priority) {
+    return { high: 0, medium: 1, low: 2 }[priority || "medium"] ?? 1;
+  }
+
+  function statusRank(status) {
+    return {
+      blocked: 0,
+      open: 1,
+      in_progress: 2,
+      done: 5,
+      cancelled: 6,
+    }[status || "open"] ?? 3;
+  }
+
+  function actionSortRank(item) {
+    if (isActionOverdue(item)) return -10;
+    if (item.status === "blocked") return -5;
+    if (isActionDone(item)) return 50;
+    return statusRank(item.status);
+  }
 
   const owners = useMemo(
     () => Array.from(new Set(safeItems.map((item) => item.owner).filter(Boolean))).sort(),
@@ -1467,20 +1515,38 @@ function ActionTrackerView({
     [safeItems]
   );
 
-  const filteredItems = safeItems.filter((item) => {
-    if (statusFilter !== "all" && item.status !== statusFilter) return false;
-    if (priorityFilter !== "all" && item.priority !== priorityFilter) return false;
-    if (ownerFilter !== "all" && item.owner !== ownerFilter) return false;
-    if (sourceFilter !== "all" && item.source_type !== sourceFilter) return false;
-    return true;
-  });
+  const filteredItems = safeItems
+    .filter((item) => {
+      if (quickFilter === "open" && item.status !== "open") return false;
+      if (quickFilter === "overdue" && !isActionOverdue(item)) return false;
+      if (quickFilter === "unassigned" && !isActionUnassigned(item)) return false;
+      if (quickFilter === "blocked" && item.status !== "blocked") return false;
+      if (quickFilter === "done" && !isActionDone(item)) return false;
+
+      if (statusFilter !== "all" && item.status !== statusFilter) return false;
+      if (priorityFilter !== "all" && item.priority !== priorityFilter) return false;
+      if (ownerFilter !== "all" && item.owner !== ownerFilter) return false;
+      if (sourceFilter !== "all" && item.source_type !== sourceFilter) return false;
+      return true;
+    })
+    .sort((a, b) => {
+      const rankDiff = actionSortRank(a) - actionSortRank(b);
+      if (rankDiff !== 0) return rankDiff;
+
+      const priorityDiff = priorityRank(a.priority) - priorityRank(b.priority);
+      if (priorityDiff !== 0) return priorityDiff;
+
+      return String(a.owner || "").localeCompare(String(b.owner || "")) || Number(a.id || 0) - Number(b.id || 0);
+    });
 
   const counts = {
     open: safeItems.filter((item) => item.status === "open").length,
     inProgress: safeItems.filter((item) => item.status === "in_progress").length,
-    done: safeItems.filter((item) => item.status === "done").length,
+    done: safeItems.filter((item) => isActionDone(item)).length,
     blocked: safeItems.filter((item) => item.status === "blocked").length,
     high: safeItems.filter((item) => item.priority === "high").length,
+    overdue: safeItems.filter((item) => isActionOverdue(item)).length,
+    unassigned: safeItems.filter((item) => isActionUnassigned(item) && !isActionDone(item)).length,
   };
 
   return (
@@ -1511,6 +1577,28 @@ function ActionTrackerView({
         <ActionStat label="Done" value={counts.done} tone="ok" />
         <ActionStat label="Blocked" value={counts.blocked} tone="danger" />
         <ActionStat label="High Priority" value={counts.high} tone="danger" />
+        <ActionStat label="Overdue" value={counts.overdue} tone={counts.overdue > 0 ? "danger" : "ok"} />
+        <ActionStat label="Unassigned" value={counts.unassigned} tone={counts.unassigned > 0 ? "warning" : "ok"} />
+      </div>
+
+      <div className="actionQuickFilterBar" aria-label="Action quick filters">
+        {[
+          ["all", "All"],
+          ["open", "Open"],
+          ["overdue", "Overdue"],
+          ["unassigned", "Unassigned"],
+          ["blocked", "Blocked"],
+          ["done", "Done"],
+        ].map(([key, label]) => (
+          <button
+            key={key}
+            type="button"
+            className={quickFilter === key ? "active" : ""}
+            onClick={() => setQuickFilter(key)}
+          >
+            {label}
+          </button>
+        ))}
       </div>
 
       <div className="actionFilterBar">
@@ -1591,5 +1679,6 @@ function ActionTrackerView({
     </div>
   );
 }
+
 
 createRoot(document.getElementById("root")).render(<App />);
