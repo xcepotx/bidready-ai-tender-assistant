@@ -5476,3 +5476,65 @@ button:hover {
     max-height: none;
   }
 }
+
+/* ===== Review card text cleanup: keep metadata on a separate line ===== */
+.reviewItem {
+  align-content: start;
+}
+
+.reviewItem strong {
+  display: block;
+  width: 100%;
+  margin-top: 0.35rem;
+  margin-bottom: 0.45rem;
+  line-height: 1.45;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+.reviewItem small {
+  display: block;
+  width: 100%;
+  margin-top: 0.2rem;
+  line-height: 1.4;
+  color: #64748b;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+.reviewItem.active small {
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.reviewItemTop {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+  margin-bottom: 0.25rem;
+}
+
+.reviewItemTop + strong {
+  margin-top: 0.25rem;
+}
+
+.reviewItem .miniCategory,
+.reviewItem .miniCompliance,
+.reviewItem .priorityBadge,
+.reviewItem .riskBadge,
+.reviewItem .statusBadge {
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+/* Clarification checkbox wrapper: keep checkbox separate from card content */
+.reviewItemWrap {
+  align-items: flex-start;
+}
+
+.reviewItemWrap .rowCheck {
+  flex: 0 0 auto;
+  margin-top: 1rem;
+}
+
