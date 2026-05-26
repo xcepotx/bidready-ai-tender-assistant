@@ -239,6 +239,92 @@ def build_executive_summary_markdown(payload: dict) -> str:
     return "\n".join(lines) + "\n"
 
 
+
+def build_executive_pack_readme_markdown(payload: dict, output_language: str = "en") -> str:
+    is_id = str(output_language or "en").lower().startswith("id")
+    project = payload.get("project", {})
+    decision_gate = payload.get("decision_gate", {})
+    readiness = payload.get("readiness_summary", {})
+
+    if is_id:
+        lines = [
+            "# README - BidReady AI Executive Pack",
+            "",
+            "Dokumen ini menjelaskan isi paket export agar mudah dipahami oleh owner, reviewer, approver, dan tim proposal.",
+            "",
+            "## Ringkasan Project",
+            f"- Project ID: {project.get('id')}",
+            f"- Judul: {project.get('title')}",
+            f"- Issuer / Client: {project.get('issuer')}",
+            f"- Status Project: {project.get('status')}",
+            f"- Status Keputusan: {decision_gate.get('decision_status', '-')}",
+            f"- Skor Readiness: {decision_gate.get('readiness_score', readiness.get('readiness_score', 0))}",
+            "",
+            "## File Utama",
+            "- `bidready_ai_tender_report.xlsx` - workbook utama untuk ringkasan tender, requirement, clarification, response, evidence, dan decision gate.",
+            "- `bidready_ai_proposal_draft.docx` - draft proposal yang bisa diedit dan disesuaikan sebelum submission.",
+            "- `bidready_ai_traceability_matrix.xlsx` - matrix pelacakan requirement sampai response, evidence, proposal, compliance, risk, action, dan clarification.",
+            "- `executive_summary.md` - ringkasan eksekutif dalam format Markdown.",
+            "- `executive_summary.json` - ringkasan eksekutif dalam format data terstruktur.",
+            "",
+            "## File Governance dan Audit",
+            "- `decision_gate.json` - keputusan bid / no-bid terbaru.",
+            "- `decision_gate_history.json` - histori perubahan decision gate dan approval.",
+            "- `approval_workflow.json` - request approval dan step approval.",
+            "- `compliance_scorecard.json` - skor compliance dan status coverage.",
+            "- `risk_register.json` - daftar risiko tender.",
+            "- `action_tracker.json` - task operasional yang perlu ditindaklanjuti.",
+            "- `clarification_response_tracker.json` - tracker jawaban clarification.",
+            "- `addendum_impact_analysis.json` - analisis dampak addendum.",
+            "- `audit_logs.json` - log aktivitas untuk audit trail.",
+            "",
+            "## Cara Pakai Cepat",
+            "1. Buka `executive_summary.md` untuk overview cepat.",
+            "2. Buka `bidready_ai_traceability_matrix.xlsx` untuk melihat gap requirement.",
+            "3. Buka `bidready_ai_proposal_draft.docx` untuk review proposal.",
+            "4. Gunakan file JSON untuk audit, integrasi, atau analisis lanjutan.",
+        ]
+    else:
+        lines = [
+            "# README - BidReady AI Executive Pack",
+            "",
+            "This document explains the exported package so owners, reviewers, approvers, and proposal teams can understand each file quickly.",
+            "",
+            "## Project Summary",
+            f"- Project ID: {project.get('id')}",
+            f"- Title: {project.get('title')}",
+            f"- Issuer / Client: {project.get('issuer')}",
+            f"- Project Status: {project.get('status')}",
+            f"- Decision Status: {decision_gate.get('decision_status', '-')}",
+            f"- Readiness Score: {decision_gate.get('readiness_score', readiness.get('readiness_score', 0))}",
+            "",
+            "## Main Files",
+            "- `bidready_ai_tender_report.xlsx` - main workbook for tender summary, requirements, clarifications, responses, evidence, and decision gate.",
+            "- `bidready_ai_proposal_draft.docx` - editable proposal draft for final review before submission.",
+            "- `bidready_ai_traceability_matrix.xlsx` - requirement traceability matrix across response, evidence, proposal, compliance, risk, action, and clarification.",
+            "- `executive_summary.md` - executive summary in Markdown format.",
+            "- `executive_summary.json` - executive summary in structured data format.",
+            "",
+            "## Governance and Audit Files",
+            "- `decision_gate.json` - latest bid / no-bid decision.",
+            "- `decision_gate_history.json` - history of decision gate and approval changes.",
+            "- `approval_workflow.json` - approval request and approval steps.",
+            "- `compliance_scorecard.json` - compliance scoring and coverage status.",
+            "- `risk_register.json` - tender risk register.",
+            "- `action_tracker.json` - operational follow-up tasks.",
+            "- `clarification_response_tracker.json` - clarification response tracker.",
+            "- `addendum_impact_analysis.json` - addendum impact analysis.",
+            "- `audit_logs.json` - activity logs for audit trail.",
+            "",
+            "## Quick Use",
+            "1. Open `executive_summary.md` for a fast overview.",
+            "2. Open `bidready_ai_traceability_matrix.xlsx` to review requirement gaps.",
+            "3. Open `bidready_ai_proposal_draft.docx` to review the proposal draft.",
+            "4. Use JSON files for audit, integration, or deeper analysis.",
+        ]
+
+    return "\n".join(lines) + "\n\n"
+
 def export_executive_pack(
     *,
     project,
@@ -385,6 +471,11 @@ def export_executive_pack(
         encoding="utf-8",
     )
 
+    (work_dir / "README.md").write_text(
+        build_executive_pack_readme_markdown(executive_payload, output_language=output_language),
+        encoding="utf-8",
+    )
+
     zip_path = output_root / f"bidready_ai_executive_pack_project_{project.id}.zip"
 
     with zipfile.ZipFile(zip_path, "w", compression=zipfile.ZIP_DEFLATED) as archive:
@@ -394,5 +485,6 @@ def export_executive_pack(
         for file_path in sorted(work_dir.glob("*.json")):
             archive.write(file_path, file_path.name)
         archive.write(work_dir / "executive_summary.md", "executive_summary.md")
+        archive.write(work_dir / "README.md", "README.md")
 
     return str(zip_path)

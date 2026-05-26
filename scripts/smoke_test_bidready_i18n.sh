@@ -428,6 +428,7 @@ required = {
     "bidready_ai_proposal_draft.docx",
     "bidready_ai_traceability_matrix.xlsx",
     "executive_summary.md",
+    "README.md",
     "executive_summary.json",
     "decision_gate_history.json",
     "approval_workflow.json",
@@ -448,6 +449,11 @@ with ZipFile(path) as zf:
         raise SystemExit("executive_summary.json missing project id")
     if "decision_gate" not in summary:
         raise SystemExit("executive_summary.json missing decision_gate")
+    readme = zf.read("README.md").decode("utf-8", errors="ignore")
+    if "bidready_ai_traceability_matrix.xlsx" not in readme:
+        raise SystemExit("README.md missing traceability matrix description")
+    if "bidready_ai_proposal_draft.docx" not in readme:
+        raise SystemExit("README.md missing proposal draft description")
 PY
 pass "Executive Pack ZIP export is valid"
 pass "Executive Pack ZIP contains required files"
