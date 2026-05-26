@@ -808,6 +808,7 @@ useEffect(() => {
               riskItems={riskItems}
               actionItems={actionItems}
               languageSetting={languageSetting}
+              downloadTraceabilityMatrix={downloadTraceabilityMatrix}
             />
           )}
 

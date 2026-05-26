@@ -69,10 +69,9 @@ export function useTenderDownloads({
     setMessage("");
 
     try {
-      await downloadFile(
+      await downloadApiFile(
         `/api/v1/projects/${selectedProjectId}/exports/traceability-matrix.xlsx`,
-        `bidready_ai_traceability_matrix_project_${selectedProjectId}.xlsx`,
-        apiFetch
+        `bidready_ai_traceability_matrix_project_${selectedProjectId}.xlsx`
       );
       setMessage("Traceability matrix Excel exported.");
     } catch (err) {
