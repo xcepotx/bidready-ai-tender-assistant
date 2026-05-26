@@ -1,4 +1,4 @@
-import { L } from "../utils/i18n.js";
+import { translateRequirementTextForUi } from "../utils/i18n.js";
 import { useState } from "react";
 import ResponseItemDetail from "../components/ResponseItemDetail.jsx";
 export default function ResponsePlanView({
@@ -9,7 +9,11 @@ export default function ResponsePlanView({
   updateResponseItem,
   generateResponsePlan,
   requirements,
+  languageSetting = { output_language: "en" },
 }) {
+  const uiLanguage = languageSetting?.output_language || "en";
+  const isIndonesian = String(uiLanguage || "").toLowerCase().startsWith("id");
+  const T = (en, id) => (isIndonesian ? id : en);
   const [searchQuery, setSearchQuery] = useState("");
   const [complianceFilter, setComplianceFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -41,15 +45,15 @@ export default function ResponsePlanView({
     <div className="workspaceView">
       <div className="viewHeader">
         <div>
-          <h3>{L("Response Plan", "Rencana Respons")}</h3>
-          <p className="muted">{L("Convert reviewed requirements into compliance status, response strategy, draft response, and evidence checklist.", "Konversi requirement yang sudah direview menjadi status kepatuhan, strategi respons, draft respons, dan checklist evidence.")}</p>
+          <h3>{T("Response Plan", "Rencana Respons")}</h3>
+          <p className="muted">{T("Convert reviewed requirements into compliance status, response strategy, draft response, and evidence checklist.", "Konversi requirement yang sudah direview menjadi status kepatuhan, strategi respons, draft respons, dan checklist evidence.")}</p>
         </div>
         <div className="viewHeaderActions">
           <span className="filterResultCount">
-            {filteredItems.length} / {responsePlan.length} {L("shown", "ditampilkan")}
+            {filteredItems.length} / {responsePlan.length} {T("shown", "ditampilkan")}
           </span>
           <button disabled={busy || requirements.length === 0} onClick={generateResponsePlan}>
-            Generate Response Plan
+            {T("Generate Response Plan", "Generate Rencana Respons")}
           </button>
         </div>
       </div>
@@ -59,11 +63,11 @@ export default function ResponsePlanView({
           className="filterInput"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Search requirement, draft response, owner, category, or compliance..."
+          placeholder={T("Search requirement, draft response, owner, category, or compliance...", "Cari requirement, draft respons, owner, kategori, atau kepatuhan...")}
         />
 
         <select className="filterSelect" value={complianceFilter} onChange={(e) => setComplianceFilter(e.target.value)}>
-          <option value="all">{L("All compliance", "Semua kepatuhan")}</option>
+          <option value="all">{T("All compliance", "Semua kepatuhan")}</option>
           <option value="likely_compliant">likely_compliant</option>
           <option value="partially_compliant">partially_compliant</option>
           <option value="non_compliant">non_compliant</option>
@@ -73,7 +77,7 @@ export default function ResponsePlanView({
         </select>
 
         <select className="filterSelect" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-          <option value="all">{L("All statuses", "Semua status")}</option>
+          <option value="all">{T("All statuses", "Semua status")}</option>
           <option value="draft">draft</option>
           <option value="in_review">in_review</option>
           <option value="ready">ready</option>
@@ -82,7 +86,7 @@ export default function ResponsePlanView({
         </select>
 
         <select className="filterSelect" value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}>
-          <option value="all">{L("All categories", "Semua kategori")}</option>
+          <option value="all">{T("All categories", "Semua kategori")}</option>
           {categories.map((category) => (
             <option key={category} value={category}>{category}</option>
           ))}
@@ -114,7 +118,7 @@ export default function ResponsePlanView({
                 <span className={`miniCompliance ${item.compliance_status}`}>{item.compliance_status}</span>
                 <span className="miniCategory">{item.category}</span>
               </div>
-              <strong>{item.requirement_text}</strong>
+              <strong>{translateRequirementTextForUi(item.requirement_text, uiLanguage)}</strong>
               <small>{item.owner || "No owner"} · {item.status}</small>
             </button>
           ))}
@@ -128,6 +132,7 @@ export default function ResponsePlanView({
               item={selectedResponseItem}
               busy={busy}
               updateResponseItem={updateResponseItem}
+              uiLanguage={uiLanguage}
             />
           ) : (
             <p className="empty">Select a response item.</p>

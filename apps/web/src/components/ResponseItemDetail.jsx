@@ -1,34 +1,38 @@
+import { translateRequirementTextForUi } from "../utils/i18n.js";
 import ResponseList from "./ResponseList.jsx";
-import { L } from "../utils/i18n.js";
-export default function ResponseItemDetail({ item, busy, updateResponseItem }) {
+export default function ResponseItemDetail({ item, busy, updateResponseItem, uiLanguage = "en" }) {
+  const isIndonesian = String(uiLanguage || "").toLowerCase().startsWith("id");
+  const T = (en, id) => (isIndonesian ? id : en);
+  const requirementText = translateRequirementTextForUi(item.requirement_text, uiLanguage);
+  const evidenceQuote = translateRequirementTextForUi(item.evidence_quote, uiLanguage);
   return (
     <div className="detailContent responseDetail">
       <div className="detailTitleRow">
         <div>
-          <p className="eyebrow dark">Response Item #{item.id}</p>
-          <h2>{item.requirement_text}</h2>
+          <p className="eyebrow dark">{T("Response Item", "Item Respons")} #{item.id}</p>
+          <h2>{requirementText}</h2>
         </div>
         <span className={`responseBadge ${item.compliance_status}`}>{item.compliance_status}</span>
       </div>
 
       <div className="detailMeta">
-        <span>Category: {item.category}</span>
-        <span>Status: {item.status}</span>
-        <span>Owner: {item.owner || "-"}</span>
-        <span>Source page: {item.source_page || "-"}</span>
-        <span>Mode: {item.generation_mode}</span>
+        <span>{T("Category", "Kategori")}: {item.category}</span>
+        <span>{T("Status", "Status")}: {item.status}</span>
+        <span>{T("Owner", "Penanggung jawab")}: {item.owner || "-"}</span>
+        <span>{T("Source page", "Halaman sumber")}: {item.source_page || "-"}</span>
+        <span>{T("Mode", "Mode")}: {item.generation_mode}</span>
       </div>
 
       {item.evidence_quote && (
         <div className="evidenceBox">
-          <strong>{L("Requirement Evidence", "Evidence Requirement")}</strong>
-          <p>{item.evidence_quote}</p>
+          <strong>{T("Requirement Evidence", "Bukti Requirement")}</strong>
+          <p>{evidenceQuote}</p>
         </div>
       )}
 
       <div className="detailGrid">
         <label>
-          Compliance
+          {T("Compliance", "Kepatuhan")}
           <select
             value={item.compliance_status || "needs_review"}
             disabled={busy}
@@ -44,7 +48,7 @@ export default function ResponseItemDetail({ item, busy, updateResponseItem }) {
         </label>
 
         <label>
-          Status
+          {T("Status", "Status")}
           <select
             value={item.status || "draft"}
             disabled={busy}
@@ -59,7 +63,7 @@ export default function ResponseItemDetail({ item, busy, updateResponseItem }) {
         </label>
 
         <label>
-          Owner
+          {T("Owner", "Penanggung jawab")}
           <input
             defaultValue={item.owner || ""}
             disabled={busy}
@@ -72,13 +76,13 @@ export default function ResponseItemDetail({ item, busy, updateResponseItem }) {
         </label>
 
         <label>
-          Confidence
+          {T("Confidence", "Tingkat keyakinan")}
           <input value={item.confidence} disabled readOnly />
         </label>
       </div>
 
       <label className="fullField">
-        Response Strategy
+        {T("Response Strategy", "Strategi Respons")}
         <textarea
           defaultValue={item.response_strategy || ""}
           disabled={busy}
@@ -91,7 +95,7 @@ export default function ResponseItemDetail({ item, busy, updateResponseItem }) {
       </label>
 
       <label className="fullField">
-        Draft Response
+        {T("Draft Response", "Draft Respons")}
         <textarea
           defaultValue={item.draft_response || ""}
           disabled={busy}
@@ -104,13 +108,13 @@ export default function ResponseItemDetail({ item, busy, updateResponseItem }) {
       </label>
 
       <div className="responseLists">
-        <ResponseList title="Evidence Needed" items={item.evidence_needed || []} />
-        <ResponseList title="Risks" items={item.risks || []} />
-        <ResponseList title="Assumptions" items={item.assumptions || []} />
+        <ResponseList title={T("Evidence Needed", "Evidence yang Dibutuhkan")} items={item.evidence_needed || []} emptyText={T("No item.", "Tidak ada item.")} />
+        <ResponseList title={T("Risks", "Risiko")} items={item.risks || []} emptyText={T("No item.", "Tidak ada item.")} />
+        <ResponseList title={T("Assumptions", "Asumsi")} items={item.assumptions || []} emptyText={T("No item.", "Tidak ada item.")} />
       </div>
 
       <label className="fullField">
-        Notes
+        {T("Notes", "Catatan")}
         <textarea
           defaultValue={item.notes || ""}
           disabled={busy}

@@ -747,6 +747,7 @@ useEffect(() => {
               updateResponseItem={updateResponseItem}
               generateResponsePlan={generateResponsePlan}
               requirements={requirements}
+              languageSetting={languageSetting}
             />
           )}
 

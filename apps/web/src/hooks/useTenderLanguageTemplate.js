@@ -28,6 +28,7 @@ export function useTenderLanguageTemplate({
       });
 
       setLanguageSetting(updated);
+      window.localStorage.setItem("bidreadyUiLanguage", updated.output_language || "en");
       setMessage(`Language updated: output ${updated.output_language === "id" ? "Indonesia" : "English"}. Regenerate analysis artifacts to apply it.`);
     } catch (err) {
       setMessage(`Language update failed: ${err.message}`);
