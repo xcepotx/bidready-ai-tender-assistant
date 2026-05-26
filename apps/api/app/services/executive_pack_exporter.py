@@ -8,6 +8,7 @@ from typing import Any
 
 from app.services.excel_exporter import export_project_checklist
 from app.services.proposal_docx_exporter import export_proposal_draft_docx
+from app.services.traceability_excel_exporter import export_traceability_matrix_xlsx
 from app.services.readiness_service import compute_readiness_summary
 from app.services.ai_gateway import build_rule_based_bid_brief
 
@@ -223,6 +224,7 @@ def build_executive_summary_markdown(payload: dict) -> str:
         "## Included Files",
         "- bidready_ai_tender_report.xlsx",
         "- bidready_ai_proposal_draft.docx",
+        "- bidready_ai_traceability_matrix.xlsx",
         "- executive_summary.json",
         "- decision_gate_history.json",
         "- approval_workflow.json",
@@ -283,6 +285,7 @@ def export_executive_pack(
 
     excel_path = work_dir / "bidready_ai_tender_report.xlsx"
     docx_path = work_dir / "bidready_ai_proposal_draft.docx"
+    traceability_path = work_dir / "bidready_ai_traceability_matrix.xlsx"
 
     export_project_checklist(
         project=project,
@@ -307,6 +310,20 @@ def export_executive_pack(
         output_path=str(docx_path),
         output_language=output_language,
         proposal_template=proposal_template,
+    )
+
+    export_traceability_matrix_xlsx(
+        project=project,
+        requirements=requirements,
+        clarifications=clarifications,
+        response_items=response_items,
+        proposal_sections=proposal_sections,
+        evidence_items=evidence_items,
+        compliance_items=compliance_items,
+        risk_items=risk_items,
+        action_items=action_items,
+        output_path=str(traceability_path),
+        output_language=output_language,
     )
 
     executive_payload = build_executive_summary_payload(
@@ -373,6 +390,7 @@ def export_executive_pack(
     with zipfile.ZipFile(zip_path, "w", compression=zipfile.ZIP_DEFLATED) as archive:
         archive.write(excel_path, "bidready_ai_tender_report.xlsx")
         archive.write(docx_path, "bidready_ai_proposal_draft.docx")
+        archive.write(traceability_path, "bidready_ai_traceability_matrix.xlsx")
         for file_path in sorted(work_dir.glob("*.json")):
             archive.write(file_path, file_path.name)
         archive.write(work_dir / "executive_summary.md", "executive_summary.md")

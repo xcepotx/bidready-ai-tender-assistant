@@ -426,6 +426,7 @@ path = Path(sys.argv[1])
 required = {
     "bidready_ai_tender_report.xlsx",
     "bidready_ai_proposal_draft.docx",
+    "bidready_ai_traceability_matrix.xlsx",
     "executive_summary.md",
     "executive_summary.json",
     "decision_gate_history.json",
