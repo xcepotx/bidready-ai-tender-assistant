@@ -94,6 +94,7 @@ function App() {
   const [readinessSummary, setReadinessSummary] = useState(null);
   const [projectMetadata, setProjectMetadata] = useState(null);
   const [bidBrief, setBidBrief] = useState(null);
+  const [workflowStatus, setWorkflowStatus] = useState(null);
   const [requirementEvidence, setRequirementEvidence] = useState(null);
 
   const [selectedRequirementId, setSelectedRequirementId] = useState(null);
@@ -359,7 +360,7 @@ function App() {
     if (!projectId) return;
 
     try {
-      const [docs, reqs, qs, responseItems, proposalSections, evidenceItems, gate, gateHistory, addendumImpactData, clarificationTrackerData, proposalTemplateData, approvalData, complianceData, riskItemsData, actionItemsData, language, audits, summary, metadata, brief] = await Promise.all([
+      const [docs, reqs, qs, responseItems, proposalSections, evidenceItems, gate, gateHistory, addendumImpactData, clarificationTrackerData, proposalTemplateData, approvalData, complianceData, riskItemsData, actionItemsData, language, audits, summary, metadata, brief, workflowData] = await Promise.all([
         apiFetch(`/api/v1/projects/${projectId}/documents`).catch(() => []),
         apiFetch(`/api/v1/projects/${projectId}/requirements`).catch(() => []),
         apiFetch(`/api/v1/projects/${projectId}/clarifications`).catch(() => []),
@@ -383,6 +384,7 @@ function App() {
         apiFetch(`/api/v1/projects/${projectId}/readiness-summary`).catch(() => null),
         apiFetch(`/api/v1/projects/${projectId}/metadata`).catch(() => null),
         apiFetch(`/api/v1/projects/${projectId}/bid-brief`).catch(() => null),
+        apiFetch(`/api/v1/projects/${projectId}/workflow-status`).catch(() => null),
       ]);
 
       setDocuments(docs);
@@ -405,6 +407,7 @@ function App() {
       setReadinessSummary(summary);
       setProjectMetadata(metadata);
       setBidBrief(brief);
+      setWorkflowStatus(workflowData);
 
       if (reqs.length > 0 && !reqs.find((item) => item.id === Number(selectedRequirementId))) {
         setSelectedRequirementId(reqs[0].id);
@@ -686,6 +689,7 @@ useEffect(() => {
               readinessSummary={readinessSummary}
               projectMetadata={projectMetadata}
               bidBrief={bidBrief}
+              workflowStatus={workflowStatus}
               responsePlan={responsePlan}
               proposalOutline={proposalOutline}
               evidencePack={evidencePack}

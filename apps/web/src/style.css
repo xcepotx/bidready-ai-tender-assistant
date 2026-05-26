@@ -5538,3 +5538,137 @@ button:hover {
   margin-top: 1rem;
 }
 
+/* ===== Bid workflow status card ===== */
+.workflowStatusCard {
+  display: grid;
+  gap: 1rem;
+}
+
+.workflowHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.workflowHeader h3 {
+  margin: 0.1rem 0 0.25rem;
+}
+
+.workflowProgressBadge {
+  min-width: 92px;
+  padding: 0.75rem 0.9rem;
+  border-radius: 1rem;
+  background: #eef2ff;
+  color: #3730a3;
+  text-align: center;
+  box-shadow: inset 0 0 0 1px rgba(99, 102, 241, 0.16);
+}
+
+.workflowProgressBadge strong {
+  display: block;
+  font-size: 1.45rem;
+  line-height: 1;
+}
+
+.workflowProgressBadge span {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.workflowProgressTrack {
+  height: 0.7rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #e2e8f0;
+}
+
+.workflowProgressFill {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #2563eb, #22c55e);
+  transition: width 240ms ease;
+}
+
+.workflowStepGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 0.65rem;
+}
+
+.workflowStep {
+  display: flex;
+  gap: 0.55rem;
+  align-items: flex-start;
+  padding: 0.7rem;
+  border-radius: 0.9rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+}
+
+.workflowStepDot {
+  width: 0.72rem;
+  height: 0.72rem;
+  margin-top: 0.2rem;
+  border-radius: 999px;
+  background: #94a3b8;
+  flex: 0 0 auto;
+}
+
+.workflowStep-done .workflowStepDot {
+  background: #22c55e;
+}
+
+.workflowStep-pending .workflowStepDot {
+  background: #f59e0b;
+}
+
+.workflowStep-optional .workflowStepDot {
+  background: #94a3b8;
+}
+
+.workflowStep strong {
+  display: block;
+  line-height: 1.25;
+}
+
+.workflowStep small {
+  display: block;
+  margin-top: 0.2rem;
+  color: #64748b;
+}
+
+.workflowNextActions {
+  padding: 0.85rem 1rem;
+  border-radius: 1rem;
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+}
+
+.workflowNextActions h4 {
+  margin: 0 0 0.5rem;
+}
+
+.workflowNextActions ol {
+  margin: 0;
+  padding-left: 1.25rem;
+}
+
+.workflowNextActions li + li {
+  margin-top: 0.35rem;
+}
+
+@media (max-width: 720px) {
+  .workflowHeader {
+    flex-direction: column;
+  }
+
+  .workflowProgressBadge {
+    width: 100%;
+  }
+}
+

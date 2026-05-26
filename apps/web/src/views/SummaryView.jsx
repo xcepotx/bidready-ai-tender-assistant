@@ -3,12 +3,14 @@ import RfpMetadataCard from "../components/RfpMetadataCard.jsx";
 import BidBriefCard from "../components/BidBriefCard.jsx";
 import ReadinessSummaryCard from "../components/ReadinessSummaryCard.jsx";
 import ExecutiveDashboardCard from "../components/ExecutiveDashboardCard.jsx";
+import WorkflowStatusCard from "../components/WorkflowStatusCard.jsx";
 import { Upload } from "lucide-react";
 export default function SummaryView({
   selectedProject,
   readinessSummary,
   projectMetadata,
   bidBrief,
+  workflowStatus,
   responsePlan,
   proposalOutline,
   evidencePack,
@@ -50,6 +52,8 @@ export default function SummaryView({
         proposalOutline={safeProposalOutline}
         evidencePack={safeEvidencePack}
       />
+
+      <WorkflowStatusCard workflowStatus={workflowStatus} />
 
       <ReadinessSummaryCard summary={readinessSummary} />
 <DecisionGateCard
